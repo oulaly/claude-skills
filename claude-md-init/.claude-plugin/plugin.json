@@ -1,0 +1,5 @@
+{
+  "name": "claude-md-init",
+  "version": "1.0.0",
+  "description": "生成或审查项目 CLAUDE.md：通用模板 + 事实验证 + 质量清单（单一事实源、权威边界、命令可执行、常见陷阱）。"
+}
