@@ -1,0 +1,5 @@
+{
+  "name": "workflow-authoring",
+  "version": "1.0.0",
+  "description": "Claude Code workflow 编写规范：meta/phases、args 契约、分阶段冻结点、角色扇出、schema 输出、状态收敛。"
+}

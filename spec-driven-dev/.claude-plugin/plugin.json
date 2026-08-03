@@ -1,0 +1,5 @@
+{
+  "name": "spec-driven-dev",
+  "version": "1.0.0",
+  "description": "规范驱动开发总入口：编排 spec-change-flow / ai-collab-guardrails / dev-conventions / workflow-authoring 四个子规范。"
+}

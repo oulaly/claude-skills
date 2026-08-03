@@ -1,0 +1,5 @@
+{
+  "name": "dev-conventions",
+  "version": "1.0.0",
+  "description": "通用开发规范：命名约定、Conventional Commits、分支命名、代码风格原则（项目已有约定优先）。"
+}

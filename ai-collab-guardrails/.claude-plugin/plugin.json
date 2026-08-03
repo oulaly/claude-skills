@@ -1,0 +1,5 @@
+{
+  "name": "ai-collab-guardrails",
+  "version": "1.0.0",
+  "description": "AI 协作护栏：自主/确认权限边界、修改前确认规则、测试门禁与 TEST_REPORT 测试报告规范。"
+}
