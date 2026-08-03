@@ -1,0 +1,13 @@
+{
+  "name": "oulaly-skills",
+  "owner": {
+    "name": "oulaly"
+  },
+  "plugins": [
+    {
+      "name": "commit-staged",
+      "source": "./commit-staged",
+      "description": "Analyze staged changes, generate Chinese Conventional Commits messages, confirm via keyboard-driven UI, and commit (optionally split by scope)."
+    }
+  ]
+}

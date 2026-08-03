@@ -1,0 +1,5 @@
+{
+  "name": "commit-staged",
+  "version": "1.0.0",
+  "description": "Analyze staged changes, generate Chinese Conventional Commits messages, confirm via keyboard-driven UI, and commit (optionally split by scope)."
+}
