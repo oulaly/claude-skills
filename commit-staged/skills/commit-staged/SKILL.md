@@ -82,11 +82,11 @@ description: 对已经 git add 的修改分析、生成中文 commit message，�
 
 - 若只有一组，直接执行：
   ```bash
-  git commit -m "type(scope): 中文描述" --trailer="Co-Authored-By: Claude <noreply@anthropic.com>"
+  git commit -m "type(scope): 中文描述" --trailer="Co-Authored-By: <当前Agent> + <当前模型> <noreply@localhost>"
   ```
 - 若有多组，使用 `git commit --only <files...>` 逐个提交，避免影响其他 staged 文件：
   ```bash
-  git commit --only <file1> <file2> ... -m "type(scope): 中文描述" --trailer="Co-Authored-By: Claude <noreply@anthropic.com>"
+  git commit --only <file1> <file2> ... -m "type(scope): 中文描述" --trailer="Co-Authored-By: <当前Agent> + <当前模型> <noreply@localhost>"
   ```
 - 若用户要求合并为一笔，则对所有 staged 文件生成一个综合 message 后统一提交。
 - 若用户要求修改 message，按用户意见调整后再次确认（仍使用 `AskUserQuestion`），再提交。
@@ -101,6 +101,8 @@ description: 对已经 git add 的修改分析、生成中文 commit message，�
 
 - 绝不在未获用户明确同意前执行 `git commit`。
 - 不要自动 push；本 skill 只负责本地 commit。
-- 使用 `--trailer` 附加 `Co-Authored-By: Claude <noreply@anthropic.com>`（若用户另行指定署名，以用户指定为准）。
+- 使用 `--trailer` 附加 AI 署名。**署名自动感知**：以当前会话声明的 CLI agent 与模型为准
+  （如 `Claude Code CLI Agent + KIMI K3`），格式 `<Agent> + <模型> <noreply@localhost>`；
+  无法确定时在确认计划阶段通过 `AskUserQuestion` 询问用户。不得沿用写死的署名。
 - 若当前项目有明确的提交规范（如 `CLAUDE.md` 或 `CONTRIBUTING.md`），优先参考项目级约定。
 - `.git/teambition-ids` 仅存在于本地 `.git` 目录，不会被提交，可安全写入。
