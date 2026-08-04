@@ -101,8 +101,9 @@ description: 对已经 git add 的修改分析、生成中文 commit message，�
 
 - 绝不在未获用户明确同意前执行 `git commit`。
 - 不要自动 push；本 skill 只负责本地 commit。
-- 使用 `--trailer` 附加 AI 署名。**署名自动感知**：以当前会话声明的 CLI agent 与模型为准
-  （如 `Claude Code CLI Agent + KIMI K3`），格式 `<Agent> + <模型> <noreply@localhost>`；
+- 使用 `--trailer` 附加 AI 署名。**署名自动感知**：以当前会话声明的 agent 与模型为准
+  （agent 形态不限于 CLI，也可能是桌面应用、IDE 插件等；署名不含 "CLI" 等形态限定词，
+  如 `Claude Code + KIMI K3`），格式 `<Agent> + <模型> <noreply@localhost>`；
   无法确定时在确认计划阶段通过 `AskUserQuestion` 询问用户。不得沿用写死的署名。
 - 若当前项目有明确的提交规范（如 `CLAUDE.md` 或 `CONTRIBUTING.md`），优先参考项目级约定。
 - `.git/teambition-ids` 仅存在于本地 `.git` 目录，不会被提交，可安全写入。
