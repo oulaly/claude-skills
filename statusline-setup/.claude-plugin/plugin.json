@@ -1,0 +1,5 @@
+{
+  "name": "statusline-setup",
+  "version": "1.0.0",
+  "description": "安装/卸载/自定义 Claude Code 状态栏：工作目录 (git 分支) [模型名]，零依赖，自动备份 settings.json。"
+}

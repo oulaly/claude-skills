@@ -38,6 +38,11 @@
       "name": "claude-md-init",
       "source": "./claude-md-init",
       "description": "生成或审查项目 CLAUDE.md：通用模板 + 事实验证 + 质量清单（单一事实源、权威边界、命令可执行、常见陷阱）。"
+    },
+    {
+      "name": "statusline-setup",
+      "source": "./statusline-setup",
+      "description": "安装/卸载/自定义 Claude Code 状态栏：工作目录 (git 分支) [模型名]，零依赖，自动备份 settings.json。"
     }
   ]
 }
