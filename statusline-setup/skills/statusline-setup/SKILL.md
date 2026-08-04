@@ -1,6 +1,6 @@
 ---
 name: statusline-setup
-description: 安装、卸载或自定义 Claude Code 状态栏（statusline）：显示「工作目录 (git 分支) [模型名]」，零依赖（bash + sed + git），自动备份并修改 settings.json。适用于配置 statusline、恢复默认、调整显示字段。
+description: 安装、卸载或自定义 Claude Code 状态栏（statusline）：显示「工作目录 (git 分支) [模型名]」，仅依赖 bash + sed + git 基础工具（无需 jq），自动备份并修改 settings.json。适用于配置 statusline、恢复默认、调整显示字段。
 ---
 
 当用户要求安装/配置/卸载/自定义 statusline 时执行。脚本文件为本 skill 目录下的

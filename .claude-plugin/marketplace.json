@@ -42,7 +42,7 @@
     {
       "name": "statusline-setup",
       "source": "./statusline-setup",
-      "description": "安装/卸载/自定义 Claude Code 状态栏：工作目录 (git 分支) [模型名]，零依赖，自动备份 settings.json。"
+      "description": "安装/卸载/自定义 Claude Code 状态栏：工作目录 (git 分支) [模型名]，仅依赖 bash + sed + git 基础工具（无需 jq），自动备份 settings.json。"
     }
   ]
 }
