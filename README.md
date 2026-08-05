@@ -20,6 +20,7 @@ A collection of custom skills for [Claude Code](https://claude.ai/code).
 | [workflow-authoring](workflow-authoring/skills/workflow-authoring/SKILL.md) | Standards for authoring Claude Code workflows: meta/phases, args contract, staged freeze points, role fan-out, output schemas. |
 | [claude-md-init](claude-md-init/skills/claude-md-init/SKILL.md) | Generate or review a project CLAUDE.md from a generic template: fact-checked commands, single source of truth, authority boundaries, common pitfalls. |
 | [statusline-setup](statusline-setup/skills/statusline-setup/SKILL.md) | Install/uninstall/customize a Claude Code statusline — `cwd (branch) [model]`; needs only standard tools (bash + sed + git, no jq); backs up settings.json automatically. |
+| [provider-switch](provider-switch/skills/provider-switch/SKILL.md) | Interactively switch the model provider for the current project (like `/model`): candidates from a global registry, writes project-level settings, keeps tokens out of committable files. |
 
 > `spec-driven-dev` orchestrates the other three spec skills — install all four together for the full system.
 
@@ -75,6 +76,7 @@ MIT
 | [workflow-authoring](workflow-authoring/skills/workflow-authoring/SKILL.md) | Claude Code workflow 编写规范：meta/phases、args 契约、分阶段冻结点、角色扇出、schema 输出、状态收敛。 |
 | [claude-md-init](claude-md-init/skills/claude-md-init/SKILL.md) | 按通用模板生成或审查项目 CLAUDE.md：命令经实际验证、单一事实源、权威边界、常见陷阱、长度克制。 |
 | [statusline-setup](statusline-setup/skills/statusline-setup/SKILL.md) | 安装/卸载/自定义 Claude Code 状态栏：显示「工作目录 (git 分支) [模型名]」，仅依赖 bash + sed + git 基础工具（无需 jq），自动备份 settings.json。 |
+| [provider-switch](provider-switch/skills/provider-switch/SKILL.md) | 交互式为当前项目切换模型供应商（类似 /model）：候选从全局清单读取，写入项目级 settings，token 与可提交配置分离，进项目自动生效。 |
 
 > `spec-driven-dev` 依赖另外三个规范子 skill，建议四个一起安装。
 
