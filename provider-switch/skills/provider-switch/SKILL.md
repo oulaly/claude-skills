@@ -42,5 +42,8 @@ description: 为当前项目切换模型供应商：执行确定性脚本（菜�
 
 ## 注意事项
 
+- **token 不进对话**：list/use 输出脚本已脱敏；但**不要在会话内用 `add` 录入 token**——
+  选项框输入的 token 会进入对话记录。新增供应商请提示用户在终端直接运行
+  `node provider-switch.mjs add`（TTY 输入），或手动编辑 `~/.claude/providers.json`。
 - 提醒用户：若系统环境变量存在同名 `ANTHROPIC_*`，可能覆盖项目配置，建议清理后统一管理。
 - 切换后新开会话生效。
