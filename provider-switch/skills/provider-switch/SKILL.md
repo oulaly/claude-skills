@@ -1,6 +1,6 @@
 ---
 name: provider-switch
-description: [自制] 为当前项目切换模型供应商：执行确定性脚本（菜单选择/直接指定 slug），从全局清单 ~/.claude/providers.json 读取候选，写入项目级 .claude/settings.json（非密钥）与 settings.local.json（token），进项目自动生效。脚本也可脱离 Claude Code 独立运行。
+description: 为当前项目切换模型供应商：执行确定性脚本（菜单选择/直接指定 slug），从全局清单 ~/.claude/providers.json 读取候选，写入项目级 .claude/settings.json（非密钥）与 settings.local.json（token），进项目自动生效。脚本也可脱离 Claude Code 独立运行。
 ---
 
 本 skill 是**薄壳**：核心逻辑在脚本 `provider-switch.mjs`（与本文件同目录）中，
