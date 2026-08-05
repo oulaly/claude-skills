@@ -98,6 +98,17 @@ function ensureGitignore() {
 async function menu(providers) {
     const slugs = Object.keys(providers);
     const current = currentProjectProvider(providers);
+    // 非 TTY 环境（如被 LLM 通过 Bash 工具调用）无法交互：
+    // 输出结构化清单并明确指引，让调用方直接用 use <slug>，避免空轮次。
+    if (!process.stdin.isTTY) {
+        console.log(`当前项目供应商: ${current}`);
+        console.log("（非交互环境，跳过菜单。请选择后执行: node provider-switch.mjs use <slug>）");
+        for (const s of slugs) {
+            const p = providers[s];
+            console.log(`  ${s} — ${p.label}  [${p.env.ANTHROPIC_BASE_URL || ""}]`);
+        }
+        return;
+    }
     console.log(`当前项目供应商: ${current}\n`);
     slugs.forEach((s, i) => {
         const p = providers[s];
