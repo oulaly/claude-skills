@@ -15,9 +15,13 @@ description: 为当前项目切换模型供应商：执行确定性脚本（菜�
    - 指定供应商：`node <skill目录>/provider-switch.mjs use <slug>`
    - 跟随全局：`node <skill目录>/provider-switch.mjs use --global`
    - 新增供应商：`node <skill目录>/provider-switch.mjs add`
-2. 用户意图不明确时，先 `list` 展示候选与当前状态，用 `AskUserQuestion` 让用户选，
-   再以 `use <slug>` 执行（菜单由脚本处理时亦可直接运行无参命令，但脚本菜单是
-   终端编号输入，优先用 AskUserQuestion 保持一致交互）。
+2. 用户意图不明确时，先 `list` 展示候选与当前状态，再用 `AskUserQuestion` 让用户选择，
+   最后以 `use <slug>` 执行。
+   **选项分页规则**（AskUserQuestion 上限 4 个选项）：
+   - 供应商 ≤ 3 个：单页提问，选项为「各供应商」+「跟随全局」。
+   - 供应商 > 3 个：分页提问。每页最多 3 个供应商 + 「更多供应商 →」；
+     最后一页为剩余供应商 +「跟随全局」+「← 返回上一页」。
+   - 绝不用「选 Other 输入 slug」代替选项列出。
 3. 原样转述脚本输出；脚本报错时把错误信息交给用户，不要尝试手工修复 JSON。
 
 ## 数据流（了解即可，脚本已处理）
