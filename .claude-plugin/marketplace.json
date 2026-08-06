@@ -48,6 +48,11 @@
       "name": "provider-switch",
       "source": "./provider-switch",
       "description": "交互式为当前项目切换模型供应商（类似 /model）：从全局清单读取候选，写入项目级 settings，token 与共享配置分离。"
+    },
+    {
+      "name": "common-config",
+      "source": "./common-config",
+      "description": "把通用 Claude Code 偏好片段（env 开关等）一键合并进全局 ~/.claude/settings.json：show/diff/apply，自动备份，Windows 专属键按平台过滤。"
     }
   ]
 }

@@ -1,0 +1,15 @@
+{
+  "_comment": "通用 Claude Code 偏好片段（唯一事实源）。各键用途说明见同目录 SKILL.md 的「片段配置说明」表。以 _ 开头的键为注释，不会写入 settings。",
+  "env": {
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+    "CLAUDE_CODE_DISABLE_MOUSE": "1",
+    "CLAUDE_CODE_NO_FLICKER": "0",
+    "CLAUDE_CODE_NATIVE_CURSOR": "1",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1",
+    "ENABLE_TOOL_SEARCH": "true",
+    "DISABLE_AUTOUPDATER": "1"
+  },
+  "autoUpdatesChannel": "latest",
+  "tui": "default"
+}
