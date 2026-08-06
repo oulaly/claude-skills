@@ -23,6 +23,7 @@ A collection of custom skills for [Claude Code](https://claude.ai/code).
 | [provider-switch](provider-switch/skills/provider-switch/SKILL.md) | Interactively switch the model provider for the current project (like `/model`): candidates from a global registry, writes project-level settings, keeps tokens out of committable files. |
 
 > `spec-driven-dev` orchestrates the other three spec skills — install all four together for the full system.
+> `provider-switch` caveat: the `/provider-switch` skill runs through the LLM, so it can't switch providers when the current provider's API is unavailable. In that case run the script directly in a terminal (`node ~/.claude/skills/provider-switch/provider-switch.mjs use <slug>` or `use --global`), or hand-edit the project's `.claude/settings.json` and `settings.local.json`; neither path goes through the LLM.
 
 ### Install
 
@@ -79,6 +80,7 @@ MIT
 | [provider-switch](provider-switch/skills/provider-switch/SKILL.md) | 交互式为当前项目切换模型供应商（类似 /model）：候选从全局清单读取，写入项目级 settings，token 与可提交配置分离，进项目自动生效。 |
 
 > `spec-driven-dev` 依赖另外三个规范子 skill，建议四个一起安装。
+> `provider-switch` 特别说明：`/provider-switch` 走 LLM，当前供应商 API 不可用时 skill 调不动、无法切换。此时只能在终端直跑脚本（`node ~/.claude/skills/provider-switch/provider-switch.mjs use <slug>` 或 `use --global`），或手动改项目 `.claude/settings.json`、`settings.local.json`，均不经 LLM。
 
 ### 安装
 
