@@ -49,6 +49,11 @@ description: 为当前项目切换模型供应商：执行确定性脚本（菜�
 
 ## 注意事项
 
+- **经 LLM 切换依赖当前供应商 API 可达**：`/provider-switch` 本身要过 LLM，当前供应商
+  API 不可用时会话内调不动本 skill，无法切换。此时只能在终端直跑脚本或手动改配置：
+  ① 清掉项目级配置跟随全局：`node ~/.claude/skills/provider-switch/provider-switch.mjs use --global`；
+  ② 或手动修改本项目 `.claude/settings.json` 与 `.claude/settings.local.json` 中的 `ANTHROPIC_*`。
+  终端直跑不经 LLM，API 故障时仍可切换——这也是推荐它的原因之一。
 - **token 不进对话**：list/use 输出脚本已脱敏；但**不要在会话内用 `add` 录入 token**——
   选项框输入的 token 会进入对话记录。新增供应商请提示用户在终端直接运行
   `node provider-switch.mjs add`（TTY 输入），或手动编辑 `~/.claude/providers.json`。
