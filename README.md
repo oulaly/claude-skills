@@ -21,6 +21,7 @@ A collection of custom skills for [Claude Code](https://claude.ai/code).
 | [claude-md-init](claude-md-init/skills/claude-md-init/SKILL.md) | Generate or review a project CLAUDE.md from a generic template: fact-checked commands, single source of truth, authority boundaries, common pitfalls. |
 | [statusline-setup](statusline-setup/skills/statusline-setup/SKILL.md) | Install/uninstall/customize a Claude Code statusline — `cwd (branch) [model]`; needs only standard tools (bash + sed + git, no jq); backs up settings.json automatically. |
 | [provider-switch](provider-switch/skills/provider-switch/SKILL.md) | Interactively switch the model provider for the current project (like `/model`): candidates from a global registry, writes project-level settings, keeps tokens out of committable files. |
+| [codebase-memory-setup](codebase-memory-setup/skills/codebase-memory-setup/SKILL.md) | Install/verify/uninstall the codebase-memory-mcp server (structural code knowledge graph with auto-incremental indexing): wraps the official installer, registers the MCP entry (user or project scope), injects CLAUDE.md "prefer graph queries" guidance. |
 
 > `spec-driven-dev` orchestrates the other three spec skills — install all four together for the full system.
 > `provider-switch` caveat: the `/provider-switch` skill runs through the LLM, so it can't switch providers when the current provider's API is unavailable. In that case run the script directly in a terminal (`node ~/.claude/skills/provider-switch/provider-switch.mjs use <slug>` or `use --global`), or hand-edit the project's `.claude/settings.json` and `settings.local.json`; neither path goes through the LLM.
@@ -78,6 +79,7 @@ MIT
 | [claude-md-init](claude-md-init/skills/claude-md-init/SKILL.md) | 按通用模板生成或审查项目 CLAUDE.md：命令经实际验证、单一事实源、权威边界、常见陷阱、长度克制。 |
 | [statusline-setup](statusline-setup/skills/statusline-setup/SKILL.md) | 安装/卸载/自定义 Claude Code 状态栏：显示「工作目录 (git 分支) [模型名]」，仅依赖 bash + sed + git 基础工具（无需 jq），自动备份 settings.json。 |
 | [provider-switch](provider-switch/skills/provider-switch/SKILL.md) | 交互式为当前项目切换模型供应商（类似 /model）：候选从全局清单读取，写入项目级 settings，token 与可提交配置分离，进项目自动生效。 |
+| [codebase-memory-setup](codebase-memory-setup/skills/codebase-memory-setup/SKILL.md) | 安装/体检/卸载 codebase-memory-mcp（代码知识图谱 MCP，自动增量索引）：编排官方安装脚本，注册 MCP 条目（用户级/项目级），注入 CLAUDE.md「优先图谱查询」指引。 |
 
 > `spec-driven-dev` 依赖另外三个规范子 skill，建议四个一起安装。
 > `provider-switch` 特别说明：`/provider-switch` 走 LLM，当前供应商 API 不可用时 skill 调不动、无法切换。此时只能在终端直跑脚本（`node ~/.claude/skills/provider-switch/provider-switch.mjs use <slug>` 或 `use --global`），或手动改项目 `.claude/settings.json`、`settings.local.json`，均不经 LLM。

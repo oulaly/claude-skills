@@ -1,0 +1,5 @@
+{
+  "name": "codebase-memory-setup",
+  "version": "1.0.0",
+  "description": "安装/体检/卸载 codebase-memory-mcp（代码知识图谱 MCP server）：编排官方安装脚本，注册 MCP 条目（用户级/项目级），注入 CLAUDE.md 指引，确定性脚本可独立运行。"
+}

@@ -53,6 +53,11 @@
       "name": "common-config",
       "source": "./common-config",
       "description": "把通用 Claude Code 偏好片段（env 开关等）一键合并进全局 ~/.claude/settings.json：show/diff/apply，自动备份，Windows 专属键按平台过滤。"
+    },
+    {
+      "name": "codebase-memory-setup",
+      "source": "./codebase-memory-setup",
+      "description": "安装/体检/卸载 codebase-memory-mcp（代码知识图谱 MCP）：编排官方安装脚本，注册 MCP 条目（用户级/项目级），注入 CLAUDE.md「优先图谱查询」指引。"
     }
   ]
 }
