@@ -34,6 +34,8 @@ description: 安装/体检/卸载 codebase-memory-mcp（代码知识图谱 MCP s
 | `uninstall --all` | 再调上游 `uninstall` 移除二进制与其自带的用户级 skill/hooks；非 TTY 下退化为打印手动命令 |
 
 - 二进制安装位置：Windows `%LOCALAPPDATA%\Programs\codebase-memory-mcp\`，unix `~/.local/bin/`
+- Windows 下执行安装脚本时**优先用 `pwsh`（PowerShell 7，若已安装）**，检测不到再退回系统自带
+  `powershell`（5.1）；两者对安装脚本参数兼容，7 的 TLS 默认值更稳
 - 上游安装器默认还会注册用户级 MCP（~/.claude.json）并安装它自带的 skill/hooks/agents——
   正常行为，正是「自动提示优先用图谱」的机制，不要当成异常
 - 所有 JSON / CLAUDE.md 写入前自动 .bak 备份

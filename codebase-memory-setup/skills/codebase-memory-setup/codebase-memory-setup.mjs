@@ -70,6 +70,18 @@ function binVersion(bin) {
     try { return execFileSync(bin, ["--version"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); }
     catch { return null; }
 }
+// Windows 下优先使用 pwsh（PowerShell 7），未安装则退回系统自带的 powershell（5.1）；
+// 两者对 -NoProfile/-ExecutionPolicy/-File 参数兼容
+function findPwsh() {
+    if (!IS_WIN) return null;
+    const candidates = [];
+    for (const dir of (process.env.PATH || "").split(path.delimiter).filter(Boolean))
+        candidates.push(path.join(dir, "pwsh.exe"));
+    if (process.env.ProgramFiles)
+        candidates.push(path.join(process.env.ProgramFiles, "PowerShell", "7", "pwsh.exe"));
+    for (const c of candidates) if (fs.existsSync(c)) return c;
+    return null;
+}
 
 async function runInstaller() {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cbm-setup-"));
@@ -80,7 +92,9 @@ async function runInstaller() {
     fs.writeFileSync(scriptPath, Buffer.from(await res.arrayBuffer()));
     console.log("执行安装脚本（其内部校验 SHA-256 后安装）...");
     if (IS_WIN) {
-        execFileSync("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath], { stdio: "inherit" });
+        const pwsh = findPwsh();
+        console.log(pwsh ? `使用 pwsh（PowerShell 7）: ${pwsh}` : "未检测到 pwsh，使用系统自带 powershell（5.1）");
+        execFileSync(pwsh || "powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath], { stdio: "inherit" });
     } else {
         execFileSync("bash", [scriptPath], { stdio: "inherit" });
     }
