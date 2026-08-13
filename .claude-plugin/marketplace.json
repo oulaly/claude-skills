@@ -58,6 +58,11 @@
       "name": "codebase-memory-setup",
       "source": "./codebase-memory-setup",
       "description": "安装/体检/卸载 codebase-memory-mcp（代码知识图谱 MCP）：编排官方安装脚本，注册 MCP 条目（用户级/项目级），注入 CLAUDE.md「优先图谱查询」指引。"
+    },
+    {
+      "name": "shell-prompt-setup",
+      "source": "./shell-prompt-setup",
+      "description": "一键安装/恢复 Windows 终端定制 prompt（PS7/PS5 profile + Tabby Clink cmd）：空行分隔、时间、路径、git 分支(脏标记)、输入新行；托管区块写入、自动备份、show/diff/apply/restore。"
     }
   ]
 }
