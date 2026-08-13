@@ -1,0 +1,5 @@
+{
+  "name": "notify-setup",
+  "version": "1.0.0",
+  "description": "安装/体检/卸载 Claude Code 等待通知：Notification hook 输出 OSC 9 序列让 Windows Terminal 弹系统通知（权限确认/空闲等待时触发），或 terminal_bell 响铃兜底；自动备份。"
+}

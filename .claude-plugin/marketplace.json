@@ -63,6 +63,11 @@
       "name": "shell-prompt-setup",
       "source": "./shell-prompt-setup",
       "description": "一键安装/恢复 Windows 终端定制 prompt（PS7/PS5 profile + Tabby Clink cmd）：空行分隔、时间、路径、git 分支(脏标记)、输入新行；托管区块写入、自动备份、show/diff/apply/restore。"
+    },
+    {
+      "name": "notify-setup",
+      "source": "./notify-setup",
+      "description": "安装/体检/卸载 Claude Code 等待通知：Notification hook 输出 OSC 9 让 Windows Terminal 弹系统通知（权限确认/空闲等待时），或 terminal_bell 响铃兜底。"
     }
   ]
 }
