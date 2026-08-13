@@ -23,6 +23,23 @@ description: 安装/体检/卸载 codebase-memory-mcp（代码知识图谱 MCP s
    `node ~/.claude/skills/codebase-memory-setup/codebase-memory-setup.mjs status`，
    并提示终端直跑不经过 LLM、下次更快。
 
+## 权限与会话模式
+
+- **install 被权限系统拦截是预期场景**：auto 模式下分类器可能以「执行外部下载代码」
+  为由拒绝（对话中的用户同意不被视为对外部来源的授权）；分类器临时故障时也会默认
+  阻断。被拦截后**不要反复重试同一命令**，按下面路径引导用户。
+- **三条出路**（按推荐顺序）：
+  1. 用户切换权限模式（`Shift+Tab` 或 `/permissions`，auto -> default），
+     之后同类命令弹交互确认框，由用户手动放行；
+  2. 在 `/permissions` 为本脚本加 allow 规则（之后免确认、不受分类器故障影响）：
+     `Bash(node <skill目录>/codebase-memory-setup.mjs:*)`；
+  3. 用户以 `!` 前缀在输入框直跑 install 命令（用户发起的命令不经分类器）。
+- **已知环境问题（脚本已内建修复，仅作排查参考）**：会话内派生的 powershell.exe
+  （5.1）会继承 pwsh 7 的 PSModulePath，导致官方安装脚本里 `Get-FileHash` 不可用；
+  本脚本调用安装器前已剔除该变量。若用户**在终端手动**跑官方 install.ps1 遇到同样
+  报错，在脚本执行前 `Import-Module Microsoft.PowerShell.Utility` 即可，系统环境
+  本身无需修复。
+
 ## 子命令与数据流（了解即可，脚本已处理）
 
 | 子命令 | 作用 |

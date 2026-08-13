@@ -94,7 +94,12 @@ async function runInstaller() {
     if (IS_WIN) {
         const pwsh = findPwsh();
         console.log(pwsh ? `使用 pwsh（PowerShell 7）: ${pwsh}` : "未检测到 pwsh，使用系统自带 powershell（5.1）");
-        execFileSync(pwsh || "powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath], { stdio: "inherit" });
+        // Claude Code 常运行在 pwsh 7 下，子进程继承的 PSModulePath 含 PS7 模块路径，
+        // 会让 Windows PowerShell 5.1 模块自动发现失败（官方脚本依赖的 Get-FileHash 不可用）。
+        // 剔除该变量，由 5.1 重建自身默认模块路径。Windows 环境变量名大小写不敏感，需按键名匹配清除。
+        const env = { ...process.env };
+        for (const k of Object.keys(env)) if (k.toLowerCase() === "psmodulepath") delete env[k];
+        execFileSync(pwsh || "powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath], { stdio: "inherit", env });
     } else {
         execFileSync("bash", [scriptPath], { stdio: "inherit" });
     }
