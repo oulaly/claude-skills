@@ -1,0 +1,5 @@
+{
+  "name": "md-convert",
+  "version": "1.0.0",
+  "description": "将 markdown 转换为自包含 HTML（图片 base64 内嵌）或 DOCX（图片内嵌），支持 mermaid 图表渲染。适用于导出文档、格式转换等场景。"
+}

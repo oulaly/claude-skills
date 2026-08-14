@@ -68,6 +68,11 @@
       "name": "notify-setup",
       "source": "./notify-setup",
       "description": "安装/体检/卸载 Claude Code 等待通知：Notification hook 输出 OSC 9 让 Windows Terminal 弹系统通知（权限确认/空闲等待时），或 terminal_bell 响铃兜底。"
+    },
+    {
+      "name": "md-convert",
+      "source": "./md-convert",
+      "description": "将 markdown 转换为自包含 HTML（图片 base64 内嵌）或 DOCX（图片内嵌），支持 mermaid 图表渲染。"
     }
   ]
 }
