@@ -7,6 +7,7 @@
 //   node codebase-memory-setup.mjs install --project   额外写项目级 .mcp.json + CLAUDE.md「优先图谱查询」指引
 //   node codebase-memory-setup.mjs uninstall           移除项目级条目（.mcp.json 条目 / CLAUDE.md 指引块）
 //   node codebase-memory-setup.mjs uninstall --all     再调上游 uninstall 移除二进制与其用户级配置
+//   node codebase-memory-setup.mjs install-index-repo  （Windows）向 PowerShell profile（pwsh7/5.1）写入 index-repo 辅助函数
 //
 // 职责边界：
 //   - 二进制本体与其自带的 skill/hooks/agents 由上游安装器负责（默认全量配置）
@@ -50,6 +51,99 @@ function readJson(file, fallback = {}) {
 function writeJson(file, obj) {
     if (fs.existsSync(file)) fs.copyFileSync(file, file + ".bak");
     fs.writeFileSync(file, JSON.stringify(obj, null, 2) + "\n");
+}
+
+// —— index-repo PowerShell 辅助函数（Windows）：向用户 profile 写入，终端一键索引新仓库 ——
+const INDEX_REPO_MARKER = "# ===== codebase-memory: 一键索引新仓库 =====";
+const INDEX_REPO_FUNC = `${INDEX_REPO_MARKER}
+function index-repo {
+    <#
+    .SYNOPSIS
+    调用 codebase-memory-mcp 的 index_repository，为指定仓库建立/更新知识图谱索引。
+    .DESCRIPTION
+    不传路径时默认索引当前目录；若位于 git 仓库子目录，自动定位到 git root 索引整个仓库。
+    .EXAMPLE
+    index-repo                        # 索引当前目录
+    index-repo D:\\work\\myrepo         # 索引指定仓库
+    index-repo D:\\work\\myrepo -Mode full
+    #>
+    param(
+        [Parameter(Position = 0)]
+        [string]$Path = (Get-Location).Path,
+        [ValidateSet('full', 'moderate', 'fast', 'cross-repo-intelligence')]
+        [string]$Mode = 'fast'
+    )
+
+    # 优先找标准安装位置，找不到再退回 PATH
+    $bin = Join-Path $env:LOCALAPPDATA 'Programs\\codebase-memory-mcp\\codebase-memory-mcp.exe'
+    if (-not (Test-Path -LiteralPath $bin)) {
+        $cmd = Get-Command codebase-memory-mcp -ErrorAction SilentlyContinue
+        if ($cmd) { $bin = $cmd.Source } else {
+            throw '找不到 codebase-memory-mcp 二进制，请先安装或将其加入 PATH'
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "路径不存在: $Path"
+    }
+    $abs = (Resolve-Path -LiteralPath $Path).Path.Replace('\\', '/')
+
+    # 若传入的是 git 仓库子目录，向上定位到 git root，避免建立重复的子图
+    $gitRoot = git -C $abs rev-parse --show-toplevel 2>$null
+    if ($LASTEXITCODE -eq 0 -and $gitRoot) {
+        $abs = ($gitRoot | Select-Object -First 1).Trim().Replace('\\', '/')
+    }
+
+    Write-Host "索引 $abs  (mode=$Mode) ..." -ForegroundColor Cyan
+    & $bin cli index_repository --repo-path $abs --mode $Mode
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "完成 [OK] 图谱已更新，任意目录下均可让 Claude 查询。" -ForegroundColor Green
+    }
+    else {
+        Write-Host "索引失败（退出码 $LASTEXITCODE），请查看上方输出。" -ForegroundColor Yellow
+    }
+}
+`;
+function profileFiles() {
+    // Windows PowerShell 的 Documents 目录在中文系统下可能为本地化名称，此处按英文 "Documents" 定位；
+    // 若目标机器实际目录不同，可自行调整。两个条目分别对应 pwsh 7 与 Windows PowerShell 5.1。
+    return [
+        path.join(os.homedir(), "Documents", "PowerShell", "Microsoft.PowerShell_profile.ps1"),
+        path.join(os.homedir(), "Documents", "WindowsPowerShell", "profile.ps1"),
+    ];
+}
+function readProfile(file) {
+    return fs.existsSync(file) ? fs.readFileSync(file, "utf8").replace(/^\uFEFF/, "") : "";
+}
+function writeProfile(file, block) {
+    const dir = path.dirname(file);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    let content = readProfile(file);
+    if (content.includes(INDEX_REPO_MARKER)) { console.log(`  ${file} 已包含 index-repo，跳过`); return; }
+    if (content && !content.endsWith("\n")) content += "\n";
+    if (content) content += "\n";
+    if (fs.existsSync(file)) fs.copyFileSync(file, file + ".bak");
+    // 统一 UTF-8 BOM：Windows PowerShell 5.1 靠 BOM 识别 UTF-8，否则中文注释/字符串会按 ANSI 误读
+    fs.writeFileSync(file, "\uFEFF" + content + block, "utf8");
+    console.log(`  ✅ 已写入 ${file}（备份 .bak）`);
+}
+function installIndexRepo() {
+    const bin = findBinary();
+    console.log("写入 index-repo 辅助函数到 PowerShell profile：");
+    for (const f of profileFiles()) writeProfile(f, INDEX_REPO_FUNC);
+    console.log("\n✅ 完成。新开终端即可用 index-repo（不传路径索引当前目录，自动定位 git root）。");
+    if (bin) console.log(`   二进制: ${bin}`);
+}
+function removeIndexRepo() {
+    for (const f of profileFiles()) {
+        if (!fs.existsSync(f)) continue;
+        const content = readProfile(f);
+        if (!content.includes(INDEX_REPO_MARKER)) continue;
+        const head = content.slice(0, content.indexOf(INDEX_REPO_MARKER)).replace(/\n+$/, "");
+        fs.copyFileSync(f, f + ".bak");
+        fs.writeFileSync(f, head ? "\uFEFF" + head + "\n" : "", "utf8");
+        console.log(`  ✅ 已从 ${f} 移除 index-repo（备份 .bak）`);
+    }
 }
 
 function findBinary() {
@@ -168,7 +262,8 @@ async function install(withProject) {
         ensureClaudeMd();
     }
     console.log("\n✅ 完成。新开会话后 MCP 生效（会话内 /mcp 可验证）；首次使用让 Claude 调 index_repository 建索引，或终端执行:");
-    console.log(`   "${bin}" cli index_repository '{"path":"."}'`);
+    console.log(`   "${bin}" cli index_repository --repo-path . --mode fast`);
+    if (IS_WIN) console.log("   顺手装终端一键索引函数: node codebase-memory-setup.mjs install-index-repo");
     console.log("   其后由文件 watcher 自动增量更新。可视化: --ui=true 后访问 localhost:9749");
 }
 
@@ -200,6 +295,7 @@ function uninstall(all) {
         console.log("（二进制与用户级配置保留；完全卸载: node codebase-memory-setup.mjs uninstall --all）");
         return;
     }
+    removeIndexRepo();
     const bin = findBinary();
     if (bin) {
         if (process.stdin.isTTY) {
@@ -230,8 +326,10 @@ try {
         await install(flag === "--project");
     } else if (cmd === "uninstall") {
         uninstall(flag === "--all");
+    } else if (cmd === "install-index-repo") {
+        installIndexRepo();
     } else {
-        console.log("用法: node codebase-memory-setup.mjs [status | install [--project] | uninstall [--all]]");
+        console.log("用法: node codebase-memory-setup.mjs [status | install [--project] | uninstall [--all] | install-index-repo]");
     }
 } catch (e) {
     console.error("❌ " + e.message);

@@ -1,6 +1,6 @@
 ---
 name: codebase-memory-setup
-description: 安装/体检/卸载 codebase-memory-mcp（代码知识图谱 MCP server，自动增量索引）：编排官方安装脚本（自动校验 SHA-256），注册 MCP 条目（用户级 ~/.claude.json 或项目级 .mcp.json 团队共享），注入 CLAUDE.md「优先图谱查询」指引。确定性脚本可脱离 Claude Code 独立运行。
+description: 安装/体检/卸载 codebase-memory-mcp（代码知识图谱 MCP server，自动增量索引）：编排官方安装脚本（自动校验 SHA-256），注册 MCP 条目（用户级 ~/.claude.json 或项目级 .mcp.json 团队共享），注入 CLAUDE.md「优先图谱查询」指引，并提供 Windows 下 index-repo 终端一键索引辅助函数（install-index-repo）。确定性脚本可脱离 Claude Code 独立运行。
 ---
 
 本 skill 是**薄壳**：核心逻辑在脚本 `codebase-memory-setup.mjs`（与本文件同目录）中，
@@ -22,6 +22,10 @@ description: 安装/体检/卸载 codebase-memory-mcp（代码知识图谱 MCP s
 6. **答复末尾必须列出等效终端命令**：如
    `node ~/.claude/skills/codebase-memory-setup/codebase-memory-setup.mjs status`，
    并提示终端直跑不经过 LLM、下次更快。
+7. **装 index-repo 终端辅助函数（可选，Windows）**：用户想「在终端一键索引」时，一次 Bash 调用
+   `node <skill目录>/codebase-memory-setup.mjs install-index-repo`，向 pwsh 7 与 Windows PowerShell 5.1
+   的 profile 追加 index-repo 函数（幂等、UTF-8 BOM、自动备份），转述结果。装后新开终端即可用：
+   `index-repo`（不传路径索引当前目录，自动定位 git root）、`index-repo D:\path`、`-Mode full`。
 
 ## 权限与会话模式
 
@@ -48,7 +52,8 @@ description: 安装/体检/卸载 codebase-memory-mcp（代码知识图谱 MCP s
 | `install` | 缺二进制则跑官方安装脚本；确保用户级 MCP 条目存在（兜底手动安装场景） |
 | `install --project` | 额外写项目 `.mcp.json`（命令名形式，可提交共享）+ CLAUDE.md 指引块 |
 | `uninstall` | 移除项目级条目（.mcp.json / CLAUDE.md 块），保留二进制与用户级配置 |
-| `uninstall --all` | 再调上游 `uninstall` 移除二进制与其自带的用户级 skill/hooks；非 TTY 下退化为打印手动命令 |
+| `uninstall --all` | 再调上游 `uninstall` 移除二进制与其自带的用户级 skill/hooks；并移除 index-repo 辅助函数；非 TTY 下退化为打印手动命令 |
+| `install-index-repo` | （Windows）向 PowerShell profile（pwsh7/5.1）写入 index-repo 终端一键索引函数；幂等、UTF-8 BOM、自动备份 |
 
 - 二进制安装位置：Windows `%LOCALAPPDATA%\Programs\codebase-memory-mcp\`，unix `~/.local/bin/`
 - Windows 下执行安装脚本时**优先用 `pwsh`（PowerShell 7，若已安装）**，检测不到再退回系统自带
@@ -65,4 +70,7 @@ description: 安装/体检/卸载 codebase-memory-mcp（代码知识图谱 MCP s
   二进制；用户级条目用绝对路径（仅本机）。
 - MCP 生效需**新开会话**，验证方式：会话内 `/mcp` 应列出 codebase-memory-mcp。
 - 装好后首次让 Claude 调 `index_repository` 建索引（大库需等待；其后 watcher 自动增量更新）。
+- 终端一键索引：Windows 装好 index-repo 后，在任意仓库目录执行 `index-repo`（不传路径索引当前目录，
+  自动定位 git root，等价于让 Claude 调 index_repository）；对应二进制子命令
+  `codebase-memory-mcp cli index_repository --repo-path . --mode fast`。
 - 图谱可视化：终端运行 `codebase-memory-mcp --ui=true` 后访问 localhost:9749。
