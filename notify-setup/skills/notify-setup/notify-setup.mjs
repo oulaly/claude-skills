@@ -2,13 +2,14 @@
 // notify-setup.mjs —— Claude Code 等待通知（Notification hook）安装/体检/卸载（无 LLM 也可独立运行）
 //
 // 用法：
-//   node notify-setup.mjs status           体检：hook 脚本 / settings.json 条目 / 响铃通道 / 当前终端通道判定
+//   node notify-setup.mjs status           体检：hook 脚本 / settings.json 条目（Notification+Stop）/ 响铃通道 / 当前终端通道判定
 //   node notify-setup.mjs install          安装自适应通知 hook（默认；OSC 9 与 Windows toast 运行时自动选择）
 //   node notify-setup.mjs install --bell   只设 terminal_bell 响铃（零依赖兜底，不装 hook）
 //   node notify-setup.mjs uninstall        移除本 skill 的 hook 条目与脚本（bell 通道保留并提示）
 //
 // 数据流：notify.mjs（与本脚本同目录）→ ~/.claude/hooks/notify.mjs
-//         + ~/.claude/settings.json 的 hooks.Notification 条目（写入前自动 .bak 备份）
+//         + ~/.claude/settings.json 的 hooks.Notification（权限确认约 6 秒无输入）
+//           与 hooks.Stop（回答完毕立即通知，无需等空闲 60 秒）条目（写入前自动 .bak 备份）
 //         旧版 notify-osc9.mjs 条目/脚本在 install/uninstall 时自动迁移清理
 import fs from "node:fs";
 import path from "node:path";
@@ -45,10 +46,10 @@ function channelGuess() {
     return mode === "osc9" ? "OSC 9（Windows Terminal）" : "Windows toast（Tabby/其他终端）";
 }
 
-// 返回 hooks.Notification 中属于本 skill 的条目下标（按命令里的 notify.mjs / notify-osc9.mjs 识别，
-// 不影响其他工具注册的 Notification 条目）
-function ourEntryIndexes(cfg) {
-    const arr = cfg.hooks?.Notification;
+// 返回 hooks[event] 中属于本 skill 的条目下标（按命令里的 notify.mjs / notify-osc9.mjs 识别，
+// 不影响其他工具注册的条目）；event 取 "Notification" 或 "Stop"
+function ourEntryIndexes(cfg, event) {
+    const arr = cfg.hooks?.[event];
     if (!Array.isArray(arr)) return [];
     const idx = [];
     arr.forEach((e, i) => {
@@ -58,14 +59,18 @@ function ourEntryIndexes(cfg) {
     return idx;
 }
 
-// 移除 settings.json 中本 skill 的 Notification 条目（含旧版 osc9 条目）；返回是否改动
+// 移除 settings.json 中本 skill 的 Notification / Stop 条目（含旧版 osc9 条目）；返回是否改动
 function removeEntries(cfg) {
-    const idx = ourEntryIndexes(cfg);
-    if (!idx.length) return false;
-    cfg.hooks.Notification = cfg.hooks.Notification.filter((_, i) => !idx.includes(i));
-    if (!cfg.hooks.Notification.length) delete cfg.hooks.Notification;
-    if (!Object.keys(cfg.hooks).length) delete cfg.hooks;
-    return true;
+    let touched = false;
+    for (const event of ["Notification", "Stop"]) {
+        const idx = ourEntryIndexes(cfg, event);
+        if (!idx.length) continue;
+        cfg.hooks[event] = cfg.hooks[event].filter((_, i) => !idx.includes(i));
+        if (!cfg.hooks[event].length) delete cfg.hooks[event];
+        touched = true;
+    }
+    if (cfg.hooks && !Object.keys(cfg.hooks).length) delete cfg.hooks;
+    return touched;
 }
 
 // 删除 hook 脚本（先 .bak 备份）；返回是否改动
@@ -80,14 +85,16 @@ function status() {
     const hasScript = fs.existsSync(HOOK_DEST);
     const hasLegacy = fs.existsSync(LEGACY_DEST);
     const cfg = readJson(SETTINGS);
-    const idx = ourEntryIndexes(cfg);
+    const nIdx = ourEntryIndexes(cfg, "Notification");
+    const sIdx = ourEntryIndexes(cfg, "Stop");
     const bell = cfg.preferredNotifChannel;
     console.log("notify-setup 体检:");
     console.log(`  hook 脚本:  ${hasScript ? HOOK_DEST : "（未安装）"}${hasLegacy ? "（另发现旧版 notify-osc9.mjs，install 时会清理）" : ""}`);
-    console.log(`  hook 条目:  ${idx.length ? `已注册（matcher: ${cfg.hooks.Notification[idx[0]].matcher || "(空=全部通知)"}）` : "未注册"}  <- ${SETTINGS}`);
+    console.log(`  Notification 条目:  ${nIdx.length ? `已注册（matcher: ${cfg.hooks.Notification[nIdx[0]].matcher || "(空=全部通知)"}，权限确认约 6 秒无输入时）` : "未注册"}  <- ${SETTINGS}`);
+    console.log(`  Stop 条目:  ${sIdx.length ? "已注册（每次回答完毕立即通知）" : "未注册"}`);
     console.log(`  响铃通道:   preferredNotifChannel = ${bell ?? "（未设置）"}`);
     console.log(`  当前终端:   ${channelGuess()}（NOTIFY_MODE=osc9|toast 可强制覆盖）`);
-    if (!hasScript || !idx.length)
+    if (!hasScript || !nIdx.length || !sIdx.length)
         console.log("\n下一步: node notify-setup.mjs install    （零依赖响铃兜底: install --bell）");
 }
 
@@ -106,11 +113,15 @@ function install(bell) {
     }
     // 0. 迁移：清掉旧版 notify-osc9 条目与脚本（新版条目不删，下面幂等处理）
     const cfg = readJson(SETTINGS);
-    const legacyIdx = ourEntryIndexes(cfg).filter(i =>
-        (cfg.hooks.Notification[i].hooks || []).some(h => String(h.command).includes("notify-osc9.mjs")));
-    if (legacyIdx.length) {
-        cfg.hooks.Notification = cfg.hooks.Notification.filter((_, i) => !legacyIdx.includes(i));
-        console.log("已移除旧版 notify-osc9 hook 条目（迁移到自适应版）");
+    let settingsDirty = false;
+    for (const event of ["Notification", "Stop"]) {
+        const legacyIdx = ourEntryIndexes(cfg, event).filter(i =>
+            (cfg.hooks[event][i].hooks || []).some(h => String(h.command).includes("notify-osc9.mjs")));
+        if (legacyIdx.length) {
+            cfg.hooks[event] = cfg.hooks[event].filter((_, i) => !legacyIdx.includes(i));
+            console.log(`已移除旧版 notify-osc9 hook 条目（${event}，迁移到自适应版）`);
+            settingsDirty = true;
+        }
     }
     if (removeScript(LEGACY_DEST)) console.log("已删除旧版 hook 脚本（备份 notify-osc9.mjs.bak）");
     // 1. hook 脚本（内容一致则跳过，不一致先 .bak 再覆盖）
@@ -123,21 +134,30 @@ function install(bell) {
         fs.copyFileSync(HOOK_SRC, HOOK_DEST);
         console.log(`✅ 已写入 hook 脚本 -> ${HOOK_DEST}`);
     }
-    // 2. settings.json 条目（已有本 skill 新版条目则跳过，其他工具的 Notification 条目不动）
-    if (ourEntryIndexes(cfg).length) {
-        if (legacyIdx.length) writeJson(SETTINGS, cfg); // 只做了迁移删除，落盘
-        console.log("settings.json 已存在本 hook 条目，跳过");
-    } else {
-        cfg.hooks = cfg.hooks || {};
+    // 2. settings.json 条目（Notification + Stop；已有则跳过，其他工具的条目不动）
+    cfg.hooks = cfg.hooks || {};
+    if (!ourEntryIndexes(cfg, "Notification").length) {
         cfg.hooks.Notification = cfg.hooks.Notification || [];
         cfg.hooks.Notification.push({
             matcher: MATCHER,
             hooks: [{ type: "command", command: HOOK_COMMAND, timeout: 5 }],
         });
-        writeJson(SETTINGS, cfg);
-        console.log(`✅ 已写入 Notification hook（matcher: ${MATCHER}）-> ${SETTINGS}（备份 .bak）`);
+        settingsDirty = true;
+        console.log(`✅ 已写入 Notification hook（matcher: ${MATCHER}）`);
     }
-    console.log(`\n✅ 完成。权限确认约 6 秒无输入 / 回答完毕空闲约 60 秒时通知（当前终端通道: ${channelGuess()}）。`);
+    if (!ourEntryIndexes(cfg, "Stop").length) {
+        cfg.hooks.Stop = cfg.hooks.Stop || [];
+        cfg.hooks.Stop.push({ hooks: [{ type: "command", command: HOOK_COMMAND, timeout: 5 }] });
+        settingsDirty = true;
+        console.log("✅ 已写入 Stop hook（回答完毕立即通知）");
+    }
+    if (settingsDirty) {
+        writeJson(SETTINGS, cfg);
+        console.log(`条目已写入 -> ${SETTINGS}（备份 .bak）`);
+    } else {
+        console.log("settings.json 条目均已存在，跳过");
+    }
+    console.log(`\n✅ 完成。权限确认约 6 秒无输入时通知；回答完毕立即通知（当前终端通道: ${channelGuess()}）。`);
     console.log("hook 运行时自适应：Windows Terminal 走 OSC 9，其他终端走 Windows 原生 toast，换终端无需重装。");
     console.log("生效：打开一次 /hooks 或新开会话。");
 }

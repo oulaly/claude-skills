@@ -25,12 +25,15 @@ description: 安装/体检/卸载 Claude Code 等待通知：权限确认（约 
 
 | 子命令 | 作用 |
 |---|---|
-| `status` | 体检：hook 脚本、settings.json 条目及 matcher、preferredNotifChannel、当前终端通道判定 |
-| `install` | 复制 `notify.mjs` 到 `~/.claude/hooks/` + 合并 Notification 条目（matcher `permission_prompt\|idle_prompt`）；自动迁移清理旧版 notify-osc9 条目/脚本 |
+| `status` | 体检：hook 脚本、Notification/Stop 条目、preferredNotifChannel、当前终端通道判定 |
+| `install` | 复制 `notify.mjs` 到 `~/.claude/hooks/` + 合并 Notification 条目（matcher `permission_prompt\|idle_prompt`）与 Stop 条目（回答完毕立即通知）；自动迁移清理旧版 notify-osc9 条目/脚本 |
 | `install --bell` | 只设 `preferredNotifChannel=terminal_bell`（零依赖兜底，不装 hook） |
-| `uninstall` | 移除本 skill 的 Notification 条目（按命令中的 `notify.mjs`/`notify-osc9.mjs` 识别，不影响其他工具的条目）+ 删 hook 脚本 |
+| `uninstall` | 移除本 skill 的 Notification/Stop 条目（按命令中的 `notify.mjs`/`notify-osc9.mjs` 识别，不影响其他工具的条目）+ 删 hook 脚本 |
 
-- 触发时机：`permission_prompt`（权限确认弹窗约 6 秒无输入）、`idle_prompt`（回答完毕约 60 秒无输入）
+- 触发时机：
+  - `Stop` hook：**每次回答完毕立即通知**（推荐主通道，不等空闲计时）
+  - `Notification` hook（matcher `permission_prompt`）：权限确认弹窗约 6 秒无输入时
+  - `Notification` hook（matcher `idle_prompt`）：回答完毕约 60 秒无输入时（注意：若用户总是快速回复，此事件永远不触发，属正常现象）
 - **通道自适应**（hook 运行时判定，换终端无需重装）：
   - `TERM_PROGRAM=Tabby` → Windows toast（注意 Tabby 里 `WT_SESSION=0` 是假阳性，不能据此判 OSC 9）
   - `WT_SESSION` 为 GUID（Windows Terminal）→ 输出 `terminalSequence`（OSC 9）弹系统通知
