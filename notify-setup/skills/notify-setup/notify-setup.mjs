@@ -11,18 +11,27 @@
 //         + ~/.claude/settings.json 的 hooks.Notification（权限确认约 6 秒无输入）
 //           与 hooks.Stop（回答完毕立即通知，无需等空闲 60 秒）条目（写入前自动 .bak 备份）
 //         旧版 notify-osc9.mjs 条目/脚本在 install/uninstall 时自动迁移清理
+//         + notify-focus.ps1/.vbs → ~/.claude/hooks/ 与 claude-notify: 协议（HKCU 注册表；
+//           点击 toast 通知时经 wscript 隐藏启动聚焦脚本（直接跑 powershell.exe 会被 Win11 默认终端=WT 拉起新窗口），uninstall 一并移除）
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const HOOK_SRC = path.join(HERE, "notify.mjs");
+const FOCUS_SRC = path.join(HERE, "notify-focus.ps1");
+const VBS_SRC = path.join(HERE, "notify-focus.vbs");
 const CLAUDE_DIR = path.join(os.homedir(), ".claude");
 const SETTINGS = path.join(CLAUDE_DIR, "settings.json");
 const HOOK_DEST = path.join(CLAUDE_DIR, "hooks", "notify.mjs");
+const FOCUS_DEST = path.join(CLAUDE_DIR, "hooks", "notify-focus.ps1");
+const VBS_DEST = path.join(CLAUDE_DIR, "hooks", "notify-focus.vbs");
 const LEGACY_DEST = path.join(CLAUDE_DIR, "hooks", "notify-osc9.mjs");
-const MATCHER = "permission_prompt|idle_prompt";
+// 点击通知聚焦终端窗口的自定义协议（注册在 HKCU，notify-focus.ps1 为处理程序）
+const URI_KEY = "HKCU\\Software\\Classes\\claude-notify";
+const MATCHER = "permission_prompt"; // 不含 idle_prompt：Stop 立即通知已覆盖之，再留会 60 秒后重复弹（误报）
 const HOOK_COMMAND = 'node "$HOME/.claude/hooks/notify.mjs"';
 // 识别本 skill 条目的标记：新版 notify.mjs 与旧版 notify-osc9.mjs（不区分 $HOME/$USERPROFILE 写法）
 const HOOK_MARKER = /notify(-osc9)?\.mjs/;
@@ -81,6 +90,25 @@ function removeScript(dest) {
     return true;
 }
 
+// 注册 claude-notify: 协议（点击 toast 通知 -> notify-focus.vbs 隐藏启动 notify-focus.ps1
+// 聚焦来源终端窗口）。必须经 wscript 中转：直接跑 powershell.exe 的话，在 Win11
+// 「默认终端应用 = Windows Terminal」时点击通知会新开一个 WT 窗口（-WindowStyle Hidden 也挡不住）。
+function registerProtocol() {
+    // reg.exe 的 /d 值内嵌引号用 \" 转义（CommandLineToArgvW 语义）
+    const handler = `wscript.exe \\"${VBS_DEST}\\" \\"%1\\"`;
+    execSync(`reg add "${URI_KEY}" /ve /d "URL:Claude Code Notify" /f`);
+    execSync(`reg add "${URI_KEY}" /v "URL Protocol" /d "" /f`);
+    execSync(`reg add "${URI_KEY}\\shell\\open\\command" /ve /d "${handler}" /f`);
+}
+
+function unregisterProtocol() {
+    try { execSync(`reg delete "${URI_KEY}" /f`); return true; } catch { return false; }
+}
+
+function protocolRegistered() {
+    try { execSync(`reg query "${URI_KEY}"`, { stdio: "ignore" }); return true; } catch { return false; }
+}
+
 function status() {
     const hasScript = fs.existsSync(HOOK_DEST);
     const hasLegacy = fs.existsSync(LEGACY_DEST);
@@ -93,6 +121,7 @@ function status() {
     console.log(`  Notification 条目:  ${nIdx.length ? `已注册（matcher: ${cfg.hooks.Notification[nIdx[0]].matcher || "(空=全部通知)"}，权限确认约 6 秒无输入时）` : "未注册"}  <- ${SETTINGS}`);
     console.log(`  Stop 条目:  ${sIdx.length ? "已注册（每次回答完毕立即通知）" : "未注册"}`);
     console.log(`  响铃通道:   preferredNotifChannel = ${bell ?? "（未设置）"}`);
+    console.log(`  点击聚焦:   ${protocolRegistered() ? "已注册 claude-notify: 协议（点通知聚焦来源终端窗口）" : "未注册（install 开启）"}`);
     console.log(`  当前终端:   ${channelGuess()}（NOTIFY_MODE=osc9|toast 可强制覆盖）`);
     if (!hasScript || !nIdx.length || !sIdx.length)
         console.log("\n下一步: node notify-setup.mjs install    （零依赖响铃兜底: install --bell）");
@@ -124,6 +153,19 @@ function install(bell) {
         }
     }
     if (removeScript(LEGACY_DEST)) console.log("已删除旧版 hook 脚本（备份 notify-osc9.mjs.bak）");
+    // 0.5 聚焦脚本 + claude-notify: 协议（点击通知聚焦来源终端窗口；幂等重注册无妨）
+    if (!fs.existsSync(FOCUS_SRC)) throw new Error(`聚焦脚本源缺失: ${FOCUS_SRC}`);
+    for (const [src, dest] of [[FOCUS_SRC, FOCUS_DEST], [VBS_SRC, VBS_DEST]]) {
+        if (fs.existsSync(dest) && fs.readFileSync(dest, "utf8") === fs.readFileSync(src, "utf8")) {
+            console.log(`聚焦脚本已是最新: ${dest}`);
+        } else {
+            if (fs.existsSync(dest)) fs.copyFileSync(dest, dest + ".bak");
+            fs.copyFileSync(src, dest);
+            console.log(`✅ 已写入聚焦脚本 -> ${dest}`);
+        }
+    }
+    registerProtocol();
+    console.log(`✅ 已注册 claude-notify: 协议（点击通知聚焦来源终端窗口，仅窗口粒度）`);
     // 1. hook 脚本（内容一致则跳过，不一致先 .bak 再覆盖）
     if (!fs.existsSync(HOOK_SRC)) throw new Error(`hook 脚本源缺失: ${HOOK_SRC}`);
     fs.mkdirSync(path.dirname(HOOK_DEST), { recursive: true });
@@ -134,9 +176,10 @@ function install(bell) {
         fs.copyFileSync(HOOK_SRC, HOOK_DEST);
         console.log(`✅ 已写入 hook 脚本 -> ${HOOK_DEST}`);
     }
-    // 2. settings.json 条目（Notification + Stop；已有则跳过，其他工具的条目不动）
+    // 2. settings.json 条目（Notification + Stop；已有则跳过/升级，其他工具的条目不动）
     cfg.hooks = cfg.hooks || {};
-    if (!ourEntryIndexes(cfg, "Notification").length) {
+    const nIdx = ourEntryIndexes(cfg, "Notification");
+    if (!nIdx.length) {
         cfg.hooks.Notification = cfg.hooks.Notification || [];
         cfg.hooks.Notification.push({
             matcher: MATCHER,
@@ -144,6 +187,17 @@ function install(bell) {
         });
         settingsDirty = true;
         console.log(`✅ 已写入 Notification hook（matcher: ${MATCHER}）`);
+    } else {
+        // 升级旧 matcher（如 permission_prompt|idle_prompt -> 去掉重复触发的 idle_prompt）
+        for (const i of nIdx) {
+            const e = cfg.hooks.Notification[i];
+            if (e.matcher !== MATCHER) {
+                const old = e.matcher;
+                e.matcher = MATCHER;
+                settingsDirty = true;
+                console.log(`✅ Notification matcher 已更新: ${old} -> ${MATCHER}（去掉 idle_prompt，避免与 Stop 重复通知）`);
+            }
+        }
     }
     if (!ourEntryIndexes(cfg, "Stop").length) {
         cfg.hooks.Stop = cfg.hooks.Stop || [];
@@ -176,6 +230,18 @@ function uninstall() {
     }
     if (removeScript(LEGACY_DEST)) {
         console.log("✅ 已删除旧版 hook 脚本（备份 notify-osc9.mjs.bak）");
+        touched = true;
+    }
+    if (unregisterProtocol()) {
+        console.log("✅ 已移除 claude-notify: 协议注册（点击聚焦）");
+        touched = true;
+    }
+    if (removeScript(FOCUS_DEST)) {
+        console.log("✅ 已删除聚焦脚本（备份 notify-focus.ps1.bak）");
+        touched = true;
+    }
+    if (removeScript(VBS_DEST)) {
+        console.log("✅ 已删除聚焦启动器（备份 notify-focus.vbs.bak）");
         touched = true;
     }
     if (!touched) console.log("无可移除条目。");
