@@ -31,7 +31,9 @@ description: 安装/体检/卸载 Claude Code 等待通知：权限确认（约 
 | `uninstall` | 移除本 skill 的 Notification/Stop 条目（按命令中的 `notify.mjs`/`notify-osc9.mjs` 识别，不影响其他工具的条目）+ 删 hook 脚本 |
 
 - 触发时机：
-  - `Stop` hook：**每次回答完毕立即通知**（推荐主通道，不等空闲计时）
+  - `Stop` hook：**每次回答完毕立即通知**（推荐主通道，不等空闲计时）；
+    同时把完成时刻写入 `~/.claude/hooks/.last-reply-<session_id>`（epoch 毫秒），
+    供 statusline-setup 的状态栏显示「回复 HH:MM X分前」（写失败静默，不影响通知）
   - `Notification` hook（matcher `permission_prompt`）：权限确认弹窗约 6 秒无输入时
   - `Notification` hook（matcher `idle_prompt`）：回答完毕约 60 秒无输入时（注意：若用户总是快速回复，此事件永远不触发，属正常现象）
 - **通道自适应**（hook 运行时判定，换终端无需重装）：

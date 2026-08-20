@@ -1,10 +1,10 @@
 ---
 name: statusline-setup
-description: 安装、卸载或自定义 Claude Code 状态栏（statusline）：显示「工作目录 (git 分支) [模型名]」，单进程实现（纯 bash 内建，零子进程，不调用 sed/git），自动备份并修改 settings.json。适用于配置 statusline、恢复默认、调整显示字段。
+description: 安装、卸载或自定义 Claude Code 状态栏（statusline）：显示「工作目录 (git 分支) [模型名] | 回复 HH:MM X分前」（回复时间依赖 notify-setup 的 Stop hook），单进程实现（纯 bash 内建，零子进程，不调用 sed/git），自动备份并修改 settings.json。适用于配置 statusline、恢复默认、调整显示字段。
 ---
 
 当用户要求安装/配置/卸载/自定义 statusline 时执行。脚本文件为本 skill 目录下的
-[`statusline.sh`](statusline.sh)，输出格式：`<工作目录> (<git 分支>) [<模型名>]`。
+[`statusline.sh`](statusline.sh)，输出格式：`<工作目录> (<git 分支>) [<模型名>] | 回复 <HH:MM> <距现在>`。
 
 ## 安装
 
@@ -19,8 +19,8 @@ description: 安装、卸载或自定义 Claude Code 状态栏（statusline）�
    }
    ```
    若已存在 `statusLine` 配置，告知用户原配置内容将被替换，确认后再改。
-4. 用 `echo '{"cwd":"/tmp","model":{"display_name":"Test"}}' | bash ~/.claude/statusline.sh`
-   验证输出，应类似 `/tmp [Test]`。
+4. 用 `echo '{"cwd":"/tmp","model":{"display_name":"Test"},"session_id":"s1"}' | bash ~/.claude/statusline.sh`
+   验证输出，应类似 `/tmp [Test]`（本会话尚无回复时无「回复」段，属正常）。
 5. 提示用户重启 Claude Code 或新开会话生效。
 
 项目级安装：改用 `<项目>/.claude/settings.json` 与 `<项目>/.claude/statusline.sh`，
@@ -44,9 +44,16 @@ description: 安装、卸载或自定义 Claude Code 状态栏（statusline）�
 
 ## 注意事项
 
+- **「回复时间」段依赖 notify-setup skill**：其 Stop hook 在每次回答完毕时写
+  `~/.claude/hooks/.last-reply-<session_id>`（epoch 毫秒），本脚本按 session_id 读取显示。
+  未安装 notify-setup 或会话尚无回复时该段自动缺省，不影响其余输出。
+  **不要改成直接读 transcript**：正在被写的活文件有 I/O 争用，实测任何读取方式（tail/cat/grep/纯 bash）
+  都要 1.4~3.2s，状态栏等不起；小状态文件是微秒级。
 - **禁止改回管道/cat 实现**：`input=$(cat)` 等 EOF 的读法在父进程被超时强杀后收不到 EOF，
   bash 会永久挂死并逐日累积泄漏（实测曾累积 270+ 个卡死进程）；必须保持 `read -t` 按行读取。
 - **禁止加入子进程调用**（sed/tr/git/jq 等）：状态栏刷新极其频繁（流式输出时每秒多次），
   每次 spawn 进程在 Windows 上代价高，会直接把 CPU 打高。分支靠读 `.git/HEAD` 获取。
 - Windows 下由 Git Bash 执行，脚本内路径已统一为正斜杠，不要改回反斜杠。
 - 脚本会被频繁调用，禁止加入网络请求等慢操作；`read -t` 超时保持 ≤0.2s。
+- **测试脚本时用正斜杠路径调用**（`bash /c/.../statusline.sh` 或 `bash ~/.claude/statusline.sh`）：
+  给 bash 传反斜杠 Windows 路径（`bash "D:\\..."`）会触发 MSYS 慢速路径解析，凭空多 3 秒，易误判为脚本慢。

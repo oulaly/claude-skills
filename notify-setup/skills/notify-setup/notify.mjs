@@ -1,10 +1,15 @@
 #!/usr/bin/env node
-// notify.mjs —— Claude Code Notification hook（运行时自适应通道）：
-//   Windows Terminal（WT_SESSION 为 GUID）→ 输出 terminalSequence 弹系统通知；
-//   Tabby（TERM_PROGRAM=Tabby，其 WT_SESSION=0 是假阳性）等其他终端 → 调 powershell.exe 弹 Windows 原生 toast（WinRT，无第三方模块）。
+// notify.mjs -- Claude Code Notification/Stop hook（运行时自适应通道）：
+//   Windows Terminal（WT_SESSION 为 GUID）-> 输出 terminalSequence 弹系统通知；
+//   Tabby（TERM_PROGRAM=Tabby，其 WT_SESSION=0 是假阳性）等其他终端 -> 调 powershell.exe 弹 Windows 原生 toast（WinRT，无第三方模块）。
+//   Stop 事件额外把完成时刻写入 ~/.claude/hooks/.last-reply-<session_id>（epoch 毫秒），
+//   供 statusline-setup 的状态栏显示「回复 HH:MM X分前」（读小文件，避开 transcript 活文件的 I/O 争用）。
 // 从 stdin JSON 取 .message 作通知正文；NOTIFY_MODE=osc9|toast 可强制指定通道（调试用）。
 // 不用 \uXXXX 转义：控制字符一律用 String.fromCharCode 构造，避免源码被多层解码破坏。
 import { spawn } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const ESC = String.fromCharCode(27);
 const BEL = String.fromCharCode(7);
@@ -46,14 +51,24 @@ function detectMode(env) {
 let d = "";
 process.stdin.on("data", (c) => (d += c)).on("end", () => {
     let evt = "";
+    let sessionId = "";
     let m = null;
     try {
         const j = JSON.parse(d);
         evt = j.hook_event_name || "";
+        sessionId = j.session_id || "";
         m = j.message || null;
     } catch { /* stdin 非 JSON 时用默认文案 */ }
     // Stop（回答完毕，立即触发）用专属文案；Notification 沿用其 .message
-    if (evt === "Stop") m = m || "回答完毕，等你回来";
+    if (evt === "Stop") {
+        m = m || "回答完毕，等你回来";
+        // 写状态文件供 statusline 显示「回复时间」（会话粒度；失败静默，不影响通知）
+        try {
+            const dir = path.join(os.homedir(), ".claude", "hooks");
+            fs.mkdirSync(dir, { recursive: true });
+            fs.writeFileSync(path.join(dir, `.last-reply-${sessionId || "default"}`), String(Date.now()));
+        } catch { /* 忽略：状态栏缺时间不影响通知 */ }
+    }
     m = m || "Claude Code 需要你的关注";
     // 所有 < 0x20 的控制字符（BEL/ESC/换行等）替换为空格，防止破坏 OSC 序列 / toast 文本
     m = String(m).split("").map((c) => (c.charCodeAt(0) < 32 ? " " : c)).join("").replace(/ {2,}/g, " ").trim()
