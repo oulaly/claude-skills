@@ -1,10 +1,10 @@
 ---
 name: statusline-setup
-description: 安装、卸载或自定义 Claude Code 状态栏（statusline）：显示「工作目录 (git 分支) [模型名] | 回复 HH:MM X分前」（回复时间依赖 notify-setup 的 Stop hook），单进程实现（纯 bash 内建，零子进程，不调用 sed/git），自动备份并修改 settings.json。适用于配置 statusline、恢复默认、调整显示字段。
+description: 安装、卸载或自定义 Claude Code 状态栏（statusline）：显示「工作目录 (git 分支) [模型名] | 回复 HH:MM」（回复时间依赖 notify-setup 的 Stop hook），单进程实现（纯 bash 内建，零子进程，不调用 sed/git），自动备份并修改 settings.json。适用于配置 statusline、恢复默认、调整显示字段。
 ---
 
 当用户要求安装/配置/卸载/自定义 statusline 时执行。脚本文件为本 skill 目录下的
-[`statusline.sh`](statusline.sh)，输出格式：`<工作目录> (<git 分支>) [<模型名>] | 回复 <HH:MM> <距现在>`。
+[`statusline.sh`](statusline.sh)，输出格式：`<工作目录> (<git 分支>) [<模型名>] | 回复 <HH:MM>`。
 
 ## 安装
 
@@ -45,7 +45,7 @@ description: 安装、卸载或自定义 Claude Code 状态栏（statusline）�
 ## 注意事项
 
 - **「回复时间」段依赖 notify-setup skill**：其 Stop hook 在每次回答完毕时写
-  `~/.claude/hooks/.last-reply-<session_id>`（epoch 毫秒），本脚本按 session_id 读取显示。
+  `~/.claude/hooks/.last-reply-<session_id>`（epoch 毫秒），本脚本按 session_id 读取显示 HH:MM。
   未安装 notify-setup 或会话尚无回复时该段自动缺省，不影响其余输出。
   **不要改成直接读 transcript**：正在被写的活文件有 I/O 争用，实测任何读取方式（tail/cat/grep/纯 bash）
   都要 1.4~3.2s，状态栏等不起；小状态文件是微秒级。

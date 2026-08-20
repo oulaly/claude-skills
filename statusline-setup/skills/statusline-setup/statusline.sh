@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # statusline.sh -- Claude Code 自定义状态栏（单进程实现）
 #
-# 输出格式：<工作目录> (<git 分支>) [<模型显示名>] | 回复 <HH:MM> <距现在>
-#   例：C:/workspace/projects/tabby (conpty) [KIMI K3] | 回复 20:20 3分前
+# 输出格式：<工作目录> (<git 分支>) [<模型显示名>] | 回复 <HH:MM>
+#   例：C:/workspace/projects/tabby (conpty) [KIMI K3] | 回复 20:20
 #
 # 输入：Claude Code 通过 stdin 传入的会话 JSON
 # 依赖：仅 bash（>=4，支持 read -t 小数超时与 BASH_REMATCH），无任何子进程。
@@ -57,15 +57,7 @@ if [[ $input =~ \"session_id\"[[:space:]]*:[[:space:]]*\"([^\"]*)\" ]]; then
         epoch=${ms%???}
         # 注意：printf %(fmt)T 会自动把 epoch 格式化成本地时间，无需再加时区偏移
         printf -v hhmm '%(%H:%M)T' "$epoch"
-        printf -v now '%(%s)T' -1
-        diff=$(( now - epoch ))
-        (( diff < 0 )) && diff=0
-        if   (( diff < 60 ));    then age="刚刚"
-        elif (( diff < 3600 ));  then age="$(( diff / 60 ))分前"
-        elif (( diff < 86400 )); then age="$(( diff / 3600 ))小时前"
-        else                          age="$(( diff / 86400 ))天前"
-        fi
-        reply="$hhmm $age"
+        reply="$hhmm"
     fi
 fi
 
