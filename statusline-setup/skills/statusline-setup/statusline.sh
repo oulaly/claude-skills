@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # statusline.sh -- Claude Code 自定义状态栏（单进程实现）
 #
-# 输出格式：<工作目录> (<git 分支>) [<模型显示名>] | 回复 <HH:MM>
+# 输出格式：<工作目录> (<git 分支>) [<模型显示名>] | 回复 <HH:MM 或 MM-DD HH:MM>
 #   例：C:/workspace/projects/tabby (conpty) [KIMI K3] | 回复 20:20
+#       （回复在更早日期时显示 08-20 20:20）
 #
 # 输入：Claude Code 通过 stdin 传入的会话 JSON
 # 依赖：仅 bash（>=4，支持 read -t 小数超时与 BASH_REMATCH），无任何子进程。
@@ -55,9 +56,15 @@ if [[ $input =~ \"session_id\"[[:space:]]*:[[:space:]]*\"([^\"]*)\" ]]; then
     # ms 为 epoch 毫秒，砍掉末 3 位得秒（纯内建）
     if [[ $ms =~ ^[0-9]{13,}$ ]]; then
         epoch=${ms%???}
-        # 注意：printf %(fmt)T 会自动把 epoch 格式化成本地时间，无需再加时区偏移
-        printf -v hhmm '%(%H:%M)T' "$epoch"
-        reply="$hhmm"
+        # 当天只显 HH:MM；跨天补日期 MM-DD（避免昨天的回复时间被误读成今天的）
+        # %Y%j 是年+年内天数，比 %m-%d 更严谨地判定「同一天」（跨年也不会误判）
+        printf -v n_ymd '%(%Y%j)T' -1
+        printf -v r_ymd '%(%Y%j)T' "$epoch"
+        if [[ $r_ymd == "$n_ymd" ]]; then
+            printf -v reply '%(%H:%M)T' "$epoch"
+        else
+            printf -v reply '%(%m-%d %H:%M)T' "$epoch"
+        fi
     fi
 fi
 
