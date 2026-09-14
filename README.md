@@ -17,7 +17,7 @@ A collection of custom skills for [Claude Code](https://claude.ai/code).
 | [spec-change-flow](spec-change-flow/skills/spec-change-flow/SKILL.md) | Spec-driven change flow: change-package docs (analysis/prd/design/tasks), change levels & freeze points, role division, ID conventions, doc sync. |
 | [ai-collab-guardrails](ai-collab-guardrails/skills/ai-collab-guardrails/SKILL.md) | AI collaboration guardrails: autonomy vs. human-confirmation boundaries, pre-edit confirmation, test gates, TEST_REPORT conventions. |
 | [dev-conventions](dev-conventions/skills/dev-conventions/SKILL.md) | General dev conventions: naming, Conventional Commits, branch naming, code style principles (project conventions win). |
-| [workflow-authoring](workflow-authoring/skills/workflow-authoring/SKILL.md) | Standards for authoring Claude Code workflows: meta/phases, args contract, staged freeze points, role fan-out, output schemas. |
+| [workflow-authoring](workflow-authoring/skills/workflow-authoring/SKILL.md) | Standards for authoring Claude Code workflows: meta/phases, args contract, staged freeze points, role fan-out, output schemas — ships a reusable `change-package` orchestration template. |
 | [claude-md-init](claude-md-init/skills/claude-md-init/SKILL.md) | Generate or review a project CLAUDE.md from a generic template: fact-checked commands, single source of truth, authority boundaries, common pitfalls. |
 | [statusline-setup](statusline-setup/skills/statusline-setup/SKILL.md) | Install/uninstall/customize a Claude Code statusline — `cwd (branch) [model]`; needs only standard tools (bash + sed + git, no jq); backs up settings.json automatically. |
 | [provider-switch](provider-switch/skills/provider-switch/SKILL.md) | Interactively switch the model provider for the current project (like `/model`): candidates from a global registry, writes project-level settings, keeps tokens out of committable files. |
@@ -78,7 +78,7 @@ MIT
 | [spec-change-flow](spec-change-flow/skills/spec-change-flow/SKILL.md) | 规范驱动变更流程：变更包四件套、变更分级与冻结点、多角色分工、编号规范、文档同步。 |
 | [ai-collab-guardrails](ai-collab-guardrails/skills/ai-collab-guardrails/SKILL.md) | AI 协作护栏：自主/确认权限边界、修改前确认规则、测试门禁、TEST_REPORT 测试报告规范。 |
 | [dev-conventions](dev-conventions/skills/dev-conventions/SKILL.md) | 通用开发规范：命名约定、Conventional Commits、分支命名、代码风格原则（项目已有约定优先）。 |
-| [workflow-authoring](workflow-authoring/skills/workflow-authoring/SKILL.md) | Claude Code workflow 编写规范：meta/phases、args 契约、分阶段冻结点、角色扇出、schema 输出、状态收敛。 |
+| [workflow-authoring](workflow-authoring/skills/workflow-authoring/SKILL.md) | Claude Code workflow 编写规范：meta/phases、args 契约、分阶段冻结点、角色扇出、schema 输出、状态收敛——附带可复用的 change-package 编排模板。 |
 | [claude-md-init](claude-md-init/skills/claude-md-init/SKILL.md) | 按通用模板生成或审查项目 CLAUDE.md：命令经实际验证、单一事实源、权威边界、常见陷阱、长度克制。 |
 | [statusline-setup](statusline-setup/skills/statusline-setup/SKILL.md) | 安装/卸载/自定义 Claude Code 状态栏：显示「工作目录 (git 分支) [模型名]」，仅依赖 bash + sed + git 基础工具（无需 jq），自动备份 settings.json。 |
 | [provider-switch](provider-switch/skills/provider-switch/SKILL.md) | 交互式为当前项目切换模型供应商（类似 /model）：候选从全局清单读取，写入项目级 settings，token 与可提交配置分离，进项目自动生效。 |

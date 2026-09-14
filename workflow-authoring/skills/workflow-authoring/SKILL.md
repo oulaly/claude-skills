@@ -73,3 +73,13 @@ else await STAGES[stage]()
 - workflow 脚本内禁用 `Date.now()`/`Math.random()`（会破坏断点续跑）；需要时间戳由 args 传入。
 - 多阶段默认用 `pipeline()` 而非屏障式 `parallel()`，除非后续阶段确实需要全部前序结果。
 - 脚本不落地为项目文件，通过 Workflow 工具内联传入或在 `.claude/workflows/` 中持久化复用。
+
+## 9. 参考模板
+
+`templates/change-package.js` 是按本规范编写的可直接复用模板：变更包六段式编排
+（立项 → 设计 → 任务拆解 → 实施 → 验证 → 门禁），含角色 → effort 分层、
+多轨并行扇出（`args.tracks`）、断点续跑情报注入（`args.resume`）、DOC/GATE 结构化输出 schema。
+
+使用时复制到项目 `.claude/workflows/change-package.js`，按项目实际调整
+`COMMON`（唯一源目录/术语/文档风格）、`TRACKS` 默认值与 `ROLE_EFFORT`。
+模板承载的流程内容（变更包四件套、角色分工、冻结点）见 `spec-change-flow` skill。

@@ -70,5 +70,6 @@ description: 规范驱动变更流程：每个需求/变更建立变更包（ana
 
 ## 8. 编排
 
-多阶段执行可配合标准 workflow（立项 → 设计 → 实施 → 验证 → 门禁，冻结点为人工确认卡点）。
-workflow 的编写规范见 `workflow-authoring` skill。
+多阶段执行可配合标准 workflow（立项 → 设计 → 任务拆解 → 实施 → 验证 → 门禁，冻结点为人工确认卡点）。
+workflow 的编写规范见 `workflow-authoring` skill；可直接复用其参考模板
+`workflow-authoring/skills/workflow-authoring/templates/change-package.js`（复制到项目 `.claude/workflows/` 即可用）。
