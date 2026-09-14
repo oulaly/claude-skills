@@ -61,8 +61,11 @@ description: 规范驱动变更流程：每个需求/变更建立变更包（ana
 
 ## 5. 状态更新
 
-- 各角色只更新自身职责范围内的 `tasks.md` 状态（✅/🚧），不动其他角色的条目。
-- 跨角色阻塞项由协调员统一标注 `⛔` 并注明原因与 Owner。
+- **协调员统一收敛**：`tasks.md` 状态由协调员（主 agent）统一维护。并行扇出场景下角色
+  **不直接编辑** `tasks.md`（同文件并发写互相覆盖，实战教训），应勾选/阻塞的任务 ID
+  经结构化结果（`openQuestions`/`summary`）上报，由协调员统一落笔。
+- 非并行场景（单角色串行执行）下，角色只更新自身职责范围内的状态（✅/🚧），不动其他角色的条目。
+- 阻塞项标注 `⛔` 并注明原因与 Owner。
 
 ## 6. 内容编号
 
@@ -81,3 +84,4 @@ description: 规范驱动变更流程：每个需求/变更建立变更包（ana
 多阶段执行可配合标准 workflow（立项 → 设计 → 任务拆解 → 实施 → 验证 → 门禁，冻结点为人工确认卡点）。
 workflow 的编写规范见 `workflow-authoring` skill；可直接复用其参考模板
 `workflow-authoring/skills/workflow-authoring/templates/change-package.js`（复制到项目 `.claude/workflows/` 即可用）。
+模板的吞吐优化纪律（单跑权威测试、按轨流水线、预审回写环、tasks.md 协调员收敛）见 `workflow-authoring` §9。

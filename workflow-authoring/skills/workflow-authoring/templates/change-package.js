@@ -20,6 +20,12 @@
  *   - 断点续跑：Workflow({scriptPath, resumeFromRunId}) 恢复时按 (prompt, opts) 哈希命中缓存，
  *     prompt 一字不改的已完成调用秒回；重跑阶段请传 args.resume 注入断点情报，
  *     并对恢复前产出的验证类结论独立复验，不盲信缓存回收的结果。
+ *   - 吞吐优化（去重、去 barrier、去返工——不去检查，质量红线不动）：
+ *     stage=all 时 Implement→Verify 按轨流水线（某轨实现完即验，不等其他轨），运维全程并行；
+ *     全量测试仅 Verify 执行一次并落盘权威产物，Gate 核对一致性 + 抽查，不重复执行全量；
+ *     合规预审发现问题立即回写（冻结前修复远便宜于下游返工）；
+ *     角色不直接改 tasks.md（并行扇出同文件并发写互相覆盖），状态建议经
+ *     openQuestions/summary 上报，由协调员（主 agent）统一收敛。
  *
  * args: {
  *   slug: string,        // 必需，变更包目录名（小写中划线），如 "portal-runtime-config"
@@ -77,7 +83,16 @@ const COMMON = [
   `编号规范：FR-/NFR-/GR-/API-/US-/AC-/TC-UT-/TC-IT-/TC-E2E-。`,
   `文档用中文撰写，风格对齐本仓库既有变更包（如有）。`,
   `你的最终回复是给协调员的原始数据，不是给人看的消息：直接输出结构化结论。`,
+  `执行纪律：长命令（全量测试/构建）用前台长 timeout 一次跑完或后台任务等完成通知，禁止 sleep 轮询。`,
 ].join('\n')
+
+// 下游阶段（Implement/Verify/Gate）文档阅读纪律：先定位本次变更章节再精读，避免全文通读
+const DOWNSTREAM_READ =
+  '文档阅读先定位本次变更相关章节（如 design 的本次新增节）再精读，避免全文通读。'
+
+// tasks.md 状态收敛纪律：并行扇出下同文件并发写会互相覆盖（实战教训），
+// 角色不直接改 tasks.md，状态建议上报，由协调员（主 agent）统一收敛
+const TASKS_DISCIPLINE = `不要直接编辑 ${DOC_DIR}/tasks.md；建议勾选/阻塞的任务 ID 放 openQuestions，由协调员统一收敛。`
 
 // 断点续跑情报：恢复运行时由 args.resume 传入，提醒角色先盘点现状、只补缺口
 const RESUME_NOTE = ARGS.resume
@@ -157,8 +172,19 @@ async function stageDesign() {
     `只报告问题，不直接改文档。\n${COMMON}`,
     withEffort('质量合规审查员', { label: '合规预审', phase: 'Design', schema: GATE_SCHEMA }),
   )
-  log(`⏸ 冻结点：请确认 design（预审 ${pre && pre.pass ? '通过' : '发现问题'}）后再进入 Tasks 阶段`)
-  return { design, testStrategy, preReview: pre }
+  // 预审发现问题即回写（实战验证有效：冻结前修复远便宜于下游返工）
+  let preReviewFix = null
+  if (pre && !pre.pass && pre.issues.length) {
+    log(`合规预审发现 ${pre.issues.length} 个问题，先回写再继续`)
+    preReviewFix = await agent(
+      `你是【架构师】。合规预审对 ${DOC_DIR}/ 文档提出以下问题，请逐条修复（直接改文档）：\n` +
+      pre.issues.map((i, n) => `${n + 1}. [${i.kind}] ${i.detail}`).join('\n') +
+      `\n修完后复述每条的处置。\n${COMMON}`,
+      withEffort('架构师', { label: '预审回写', phase: 'Design', schema: DOC_SCHEMA }),
+    )
+  }
+  log(`⏸ 冻结点：请确认 design（预审 ${pre && pre.pass ? '通过' : `发现 ${pre ? pre.issues.length : '?'} 个问题${preReviewFix ? '，已回写' : ''}`}）后再进入 Tasks 阶段`)
+  return { design, testStrategy, preReview: pre, preReviewFix }
 }
 
 // 置于 Design 之后：开发/运维任务拆解依赖 design 产出；tasks.md 是冻结的组成部分
@@ -175,55 +201,67 @@ async function stageTasks() {
   return r
 }
 
+// 提示词/选项构造器：stage 单独调用与 all 模式流水线共用
+function implementPrompt(t) {
+  return (
+    `你是【开发工程师】${TRACKS.length > 1 ? `（负责 ${t} 轨）` : ''}。` +
+    `严格按已冻结的 ${DOC_DIR}/prd.md 与 ${DOC_DIR}/design.md 实现代码，\n` +
+    `并编写对应单元测试；按 design 指标清单完成埋点。\n` +
+    `约束：不得偏离冻结设计；实现导致设计变化时停止并在 openQuestions 中说明，由协调员回写文档后再继续。\n` +
+    `完成后运行相关单测（不全量——全量验证归 Verify 阶段，避免重复执行）。\n` +
+    `${DOWNSTREAM_READ}\n${TASKS_DISCIPLINE}\n${COMMON}${RESUME_NOTE}`
+  )
+}
+function implementOpts(t) {
+  return withEffort('开发工程师', {
+    label: TRACKS.length > 1 ? `开发:${t}` : '开发工程师',
+    phase: 'Implement',
+    schema: DOC_SCHEMA,
+  })
+}
+function verifyPrompt(t) {
+  return (
+    `你是【测试工程师】${TRACKS.length > 1 ? `（负责 ${t} 轨）` : ''}。基于 ${DOC_DIR}/tests.md 执行验证：\n` +
+    `运行集成/E2E 测试（环境不可用的项标注阻塞原因而非跳过），补全用例实现。\n` +
+    `按 design 逐条核对实现可达性（调用点已接线、文案 key 齐全、入口可达），而非仅看文件存在。\n` +
+    `生成/更新对应模块的 TEST_REPORT.md（执行时间、总数/通过/失败/跳过、覆盖率、<80% 模块清单、\n` +
+    `失败摘要与责任人；覆盖率运行须以全量跑收尾，避免子集运行污染权威数字）。\n` +
+    `本轨全量套件由你执行一次并作为权威产物——下游 Gate 只核对不重复执行。\n` +
+    `${DOWNSTREAM_READ}\n${TASKS_DISCIPLINE}\n${COMMON}${RESUME_NOTE}`
+  )
+}
+function verifyOpts(t) {
+  return withEffort('测试工程师', {
+    label: TRACKS.length > 1 ? `测试:${t}` : '测试工程师',
+    phase: 'Verify',
+    schema: DOC_SCHEMA,
+  })
+}
+function opsPrompt() {
+  return (
+    `你是【运维工程师】。按 ${DOC_DIR}/design.md 完成部署侧工作：\n` +
+    `deploy/、Dockerfile、编排与配置中心、监控部署（告警规则/面板等，按项目实际）。\n` +
+    `只动部署与配置，不改业务源码。\n` +
+    `若集群/环境不可用导致无法验证，将对应任务标注 ⛔ 并注明原因（经 openQuestions 上报）。\n` +
+    `${TASKS_DISCIPLINE}\n${COMMON}${RESUME_NOTE}`
+  )
+}
+function opsOpts() {
+  return withEffort('运维工程师', { label: '运维工程师', phase: 'Implement', schema: DOC_SCHEMA })
+}
+
 async function stageImplement() {
   phase('Implement')
   log(`实施阶段：开发按轨扇出（${TRACKS.join('/')}）∥ 运维并行`)
-  const jobs = TRACKS.map((t) => () =>
-    agent(
-      `你是【开发工程师】${TRACKS.length > 1 ? `（负责 ${t} 轨）` : ''}。` +
-      `严格按已冻结的 ${DOC_DIR}/prd.md 与 ${DOC_DIR}/design.md 实现代码，\n` +
-      `并编写对应单元测试；按 design 指标清单完成埋点。\n` +
-      `约束：不得偏离冻结设计；实现导致设计变化时停止并在 openQuestions 中说明，由协调员回写文档后再继续。\n` +
-      `完成后运行相关单测，更新 ${DOC_DIR}/tasks.md 中本轨开发项状态（只改 ✅/🚧，不动其他角色条目）。\n` +
-      `${COMMON}${RESUME_NOTE}`,
-      withEffort('开发工程师', {
-        label: TRACKS.length > 1 ? `开发:${t}` : '开发工程师',
-        phase: 'Implement',
-        schema: DOC_SCHEMA,
-      }),
-    ),
-  )
-  jobs.push(() =>
-    agent(
-      `你是【运维工程师】。按 ${DOC_DIR}/design.md 完成部署侧工作：\n` +
-      `deploy/、Dockerfile、编排与配置中心、监控部署（告警规则/面板等，按项目实际）。\n` +
-      `只动部署与配置，不改业务源码；更新 ${DOC_DIR}/tasks.md 中运维项状态。\n` +
-      `若集群/环境不可用导致无法验证，将对应任务标注 ⛔ 并注明原因与 Owner。\n${COMMON}${RESUME_NOTE}`,
-      withEffort('运维工程师', { label: '运维工程师', phase: 'Implement', schema: DOC_SCHEMA }),
-    ),
-  )
+  const jobs = TRACKS.map((t) => () => agent(implementPrompt(t), implementOpts(t)))
+  jobs.push(() => agent(opsPrompt(), opsOpts()))
   const results = await parallel(jobs)
   return { dev: results.slice(0, TRACKS.length), ops: results[TRACKS.length] }
 }
 
 async function stageVerify() {
   phase('Verify')
-  const jobs = TRACKS.map((t) => () =>
-    agent(
-      `你是【测试工程师】${TRACKS.length > 1 ? `（负责 ${t} 轨）` : ''}。基于 ${DOC_DIR}/tests.md 执行验证：\n` +
-      `运行集成/E2E 测试（环境不可用的项标注阻塞原因而非跳过），补全用例实现。\n` +
-      `按 design 逐条核对实现可达性（调用点已接线、文案 key 齐全、入口可达），而非仅看文件存在。\n` +
-      `生成/更新对应模块的 TEST_REPORT.md（执行时间、总数/通过/失败/跳过、覆盖率、<80% 模块清单、\n` +
-      `失败摘要与责任人；覆盖率运行须以全量跑收尾，避免子集运行污染权威数字）。\n` +
-      `更新 ${DOC_DIR}/tasks.md 中测试项状态。\n${COMMON}${RESUME_NOTE}`,
-      withEffort('测试工程师', {
-        label: TRACKS.length > 1 ? `测试:${t}` : '测试工程师',
-        phase: 'Verify',
-        schema: DOC_SCHEMA,
-      }),
-    ),
-  )
-  return await parallel(jobs)
+  return await parallel(TRACKS.map((t) => () => agent(verifyPrompt(t), verifyOpts(t))))
 }
 
 async function stageGate() {
@@ -235,7 +273,10 @@ async function stageGate() {
     `2) 安全合规：密钥不落盘/不进热更新、权限与 CORS 配置、日志脱敏；\n` +
     `3) 质量门禁：TEST_REPORT.md 已更新、覆盖率达标、⛔ 阻塞项有 Owner 与原因、\n` +
     `   design 指标清单均已埋点并部署；\n` +
-    `4) tasks.md 状态与实际产出一致。\n` +
+    `4) tasks.md 状态与实际产出一致——应勾 ✅ 的任务 ID 清单放 summary（状态由协调员统一收敛）。\n` +
+    `测试权威性以 Verify 阶段的 TEST_REPORT 与其原始产物为准：核对数字一致性 + 关键用例抽查；\n` +
+    `不重复执行全量测试套件（重复执行是本流程已识别的浪费项），除非有理由怀疑其权威性。\n` +
+    `${DOWNSTREAM_READ}\n` +
     `发现问题只报告并指派回写角色，不直接改。pass=false 时不得合并。\n${COMMON}`,
     withEffort('质量合规审查员', { label: '质量合规审查员', phase: 'Gate', schema: GATE_SCHEMA }),
   )
@@ -263,10 +304,27 @@ if ((stage === 'all' || stage === 'plan') && !ARGS.brief) {
 
 if (stage === 'all') {
   const results = {}
-  for (const [name, fn] of Object.entries(STAGES)) {
-    results[name] = await fn()
-    if (name === 'gate' && results.gate && !results.gate.pass) break
+  for (const name of ['plan', 'design', 'tasks']) {
+    results[name] = await STAGES[name]()
   }
+  // Implement→Verify 按轨流水线：某轨实现完即进入该轨验证，不等其他轨；
+  // 运维与整条流水线并行。某轨实现失败（null）则该轨验证跳过，其余轨不受影响。
+  log(`实施+验证：按轨流水线扇出（${TRACKS.join('/')}）∥ 运维并行`)
+  const [trackResults, ops] = await parallel([
+    () =>
+      pipeline(
+        TRACKS,
+        (t) => agent(implementPrompt(t), implementOpts(t)),
+        (impl, t) =>
+          impl
+            ? agent(verifyPrompt(t), verifyOpts(t)).then((verify) => ({ track: t, impl, verify }))
+            : null,
+      ),
+    () => agent(opsPrompt(), opsOpts()),
+  ])
+  results.implement = { dev: trackResults.map((r) => r && r.impl), ops }
+  results.verify = trackResults.map((r) => r && r.verify)
+  results.gate = await STAGES.gate()
   return results
 }
 const fn = STAGES[stage]
