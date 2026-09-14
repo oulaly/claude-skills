@@ -25,6 +25,7 @@ A collection of custom skills for [Claude Code](https://claude.ai/code).
 | [shell-prompt-setup](shell-prompt-setup/skills/shell-prompt-setup/SKILL.md) | Install/restore a custom Windows shell prompt (PS7/PS5 profiles + Tabby Clink cmd): blank-line separation, time, path, git branch with dirty mark, input on a new line; managed region blocks, auto-backup, show/diff/apply/restore. |
 | [notify-setup](notify-setup/skills/notify-setup/SKILL.md) | Install/verify/uninstall an attention notification for Claude Code - when a permission prompt sits ~6s or the answer waits ~60s, emit OSC 9 via the Notification hook so Windows Terminal pops a system notification (terminal_bell fallback for other terminals). |
 | [md-convert](md-convert/skills/md-convert/SKILL.md) | Converts markdown to self-contained HTML (base64-embedded images) or DOCX (embedded images), with optional mermaid diagram rendering via kroki.io. |
+| [session-resume](session-resume/skills/session-resume/SKILL.md) | Interactively pick a recently closed Claude Code session and resume it: lists session ID, title, working directory, git branch, last-active time; PowerShell function + cmd wrapper. |
 
 > `spec-driven-dev` orchestrates the other three spec skills - install all four together for the full system.
 > `provider-switch` caveat: the `/provider-switch` skill runs through the LLM, so it can't switch providers when the current provider's API is unavailable. In that case run the script directly in a terminal (`node ~/.claude/skills/provider-switch/provider-switch.mjs use <slug>` or `use --global`), or hand-edit the project's `.claude/settings.json` and `settings.local.json`; neither path goes through the LLM.
@@ -86,6 +87,7 @@ MIT
 | [shell-prompt-setup](shell-prompt-setup/skills/shell-prompt-setup/SKILL.md) | 一键安装/恢复 Windows 终端定制 prompt（PS7/PS5 profile + Tabby Clink cmd）：空行分隔、时间、路径、git 分支(脏标记)、输入新行；托管区块写入、自动备份、show/diff/apply/restore。 |
 | [notify-setup](notify-setup/skills/notify-setup/SKILL.md) | 安装/体检/卸载 Claude Code 等待通知：权限确认约 6 秒无输入或回答完毕空闲约 60 秒时，经 Notification hook 输出 OSC 9 序列，让 Windows Terminal 弹系统通知（其他终端可退到 terminal_bell 响铃）。 |
 | [md-convert](md-convert/skills/md-convert/SKILL.md) | 将 markdown 转换为自包含 HTML（图片 base64 内嵌）或 DOCX（图片内嵌），支持 mermaid 图表渲染。 |
+| [session-resume](session-resume/skills/session-resume/SKILL.md) | 交互式选择最近关闭的 Claude Code 会话并恢复：列表展示会话 ID、标题、工作目录、git 分支、最后活跃时间；PowerShell 函数 + cmd 包装。 |
 
 > `spec-driven-dev` 依赖另外三个规范子 skill，建议四个一起安装。
 > `provider-switch` 特别说明：`/provider-switch` 走 LLM，当前供应商 API 不可用时 skill 调不动、无法切换。此时只能在终端直跑脚本（`node ~/.claude/skills/provider-switch/provider-switch.mjs use <slug>` 或 `use --global`），或手动改项目 `.claude/settings.json`、`settings.local.json`，均不经 LLM。

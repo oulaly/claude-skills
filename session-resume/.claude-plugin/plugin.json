@@ -1,0 +1,6 @@
+{
+  "name": "session-resume",
+  "version": "1.0.0",
+  "description": "交互式选择最近关闭的 Claude Code 会话并恢复：列表展示 ID、标题/摘要、工作目录、分支、最后活跃时间；PowerShell 函数 + cmd 包装。",
+  "skills": "./skills"
+}

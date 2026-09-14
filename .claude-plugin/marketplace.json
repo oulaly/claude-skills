@@ -73,6 +73,11 @@
       "name": "md-convert",
       "source": "./md-convert",
       "description": "将 markdown 转换为自包含 HTML（图片 base64 内嵌）或 DOCX（图片内嵌），支持 mermaid 图表渲染。"
+    },
+    {
+      "name": "session-resume",
+      "source": "./session-resume",
+      "description": "交互式选择最近关闭的 Claude Code 会话并恢复：列表展示 ID、标题、工作目录、分支、最后活跃时间；PowerShell 函数 + cmd 包装。"
     }
   ]
 }
