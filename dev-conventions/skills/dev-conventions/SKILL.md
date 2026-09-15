@@ -46,6 +46,12 @@ description: 通用开发规范：命名约定（Python/TypeScript/React/API/数
 | `docs/` | 文档 | `docs/api-documentation` |
 | `chore/` | 工具链 | `chore/update-dependencies` |
 
+命名细则：
+
+- 统一格式 `<type>/<slug>`：`type` 取上表前缀，`slug` 一律**全小写英文 + 中划线**（kebab-case），禁止中文、下划线、大写、空格。
+- **一个分支只承载一个变更/主题**，分支名一经创建不改。
+- 项目若有变更包目录（如 `docs/changes/<slug>/`）约定，分支名与变更包 slug 同名（如 `feature/hcs-config-db`）。
+
 ## 4. 代码风格原则
 
 - **以项目 lint 配置文件为实际标准**：文档中写的风格约定（如行宽）若与 lint 配置
